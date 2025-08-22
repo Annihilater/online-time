@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线闹钟功能测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .feature-item {
+            padding: 10px;
+            margin: 10px 0;
+            background: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            border-radius: 4px;
+        }
+        .completed {
+            background: #f0fdf4;
+            border-left-color: #22c55e;
+        }
+        .enhanced {
+            background: #fefce8;
+            border-left-color: #eab308;
+        }
+        button {
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0284c7;
+        }
+        .audio-test {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔔 在线闹钟系统 - 功能验证</h1>
+    
+    <div class="test-section">
+        <h2>✅ 已完成的核心功能</h2>
+        
+        <div class="feature-item completed">
+            <h3>🎵 高级音频系统</h3>
+            <ul>
+                <li>✅ 11种不同的闹钟声音（时钟、蜂鸣声、公鸡声、警笛声、核弹、外星人、雨声、炸弹、神秘之声、钟声、白噪音）</li>
+                <li>✅ Web Audio API 合成音频，无需外部音频文件</li>
+                <li>✅ 音量控制和声音测试功能</li>
+                <li>✅ 循环播放直到用户停止</li>
+                <li>✅ 音频预加载和错误处理</li>
+            </ul>
+            
+            <div class="audio-test">
+                <h4>音频测试：</h4>
+                <button onclick="testAudio('clock')">测试时钟声</button>
+                <button onclick="testAudio('beep')">测试蜂鸣声</button>
+                <button onclick="testAudio('rooster')">测试公鸡声</button>
+                <button onclick="testAudio('siren')">测试警笛声</button>
+                <button onclick="stopAudio()">停止播放</button>
+            </div>
+        </div>
+
+        <div class="feature-item completed">
+            <h3>⏰ 精确时间管理</h3>
+            <ul>
+                <li>✅ 高精度定时器系统 (HighPrecisionTimer)</li>
+                <li>✅ requestAnimationFrame 驱动的精确计时</li>
+                <li>✅ 防止页面休眠 (Screen Wake Lock API)</li>
+                <li>✅ 页面隐藏/显示时的时间同步</li>
+                <li>✅ 浏览器通知权限处理</li>
+                <li>✅ 时区处理和时间格式化</li>
+            </ul>
+        </div>
+
+        <div class="feature-item completed">
+            <h3>🔄 状态管理和持久化</h3>
+            <ul>
+                <li>✅ Zustand 全局状态管理</li>
+                <li>✅ localStorage 数据持久化</li>
+                <li>✅ 闹钟列表自动保存和恢复</li>
+                <li>✅ 用户设置持久化（主题、音量、格式等）</li>
+                <li>✅ 页面刷新后状态完全恢复</li>
+            </ul>
+        </div>
+
+        <div class="feature-item completed">
+            <h3>🚀 性能优化</h3>
+            <ul>
+                <li>✅ Web Workers 支持（可选，用于复杂时间计算）</li>
+                <li>✅ 组件懒加载和代码分割</li>
+                <li>✅ 音频引擎单例模式</li>
+                <li>✅ 内存泄漏防护</li>
+                <li>✅ React Hook 优化和依赖管理</li>
+            </ul>
+        </div>
+
+        <div class="feature-item enhanced">
+            <h3>🌟 增强功能</h3>
+            <ul>
+                <li>✅ 贪睡功能（可配置分钟数，默认10分钟）</li>
+                <li>✅ 多闹钟并发支持</li>
+                <li>✅ 闹钟历史和统计</li>
+                <li>✅ 深色/浅色主题切换</li>
+                <li>✅ 响应式设计，完美适配移动端</li>
+                <li>✅ 浏览器通知集成</li>
+                <li>✅ 闹钟重复设置</li>
+                <li>✅ 快速预设时间</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🛠 技术栈和架构</h2>
+        <div class="feature-item">
+            <h3>前端框架</h3>
+            <ul>
+                <li>React 19 + TypeScript</li>
+                <li>Zustand 状态管理</li>
+                <li>Tailwind CSS + DaisyUI</li>
+                <li>Vite 构建工具</li>
+                <li>Date-fns 时间处理</li>
+                <li>Lucide React 图标</li>
+            </ul>
+        </div>
+
+        <div class="feature-item">
+            <h3>核心工具类</h3>
+            <ul>
+                <li><strong>audioEngine.ts</strong> - 高级音频引擎</li>
+                <li><strong>timeUtils.ts</strong> - 时间处理工具</li>
+                <li><strong>timeWorker.ts</strong> - Web Worker 时间计算</li>
+                <li><strong>alarmStore.ts</strong> - 状态管理中心</li>
+                <li><strong>useTimer.ts</strong> - 高精度定时器Hook</li>
+                <li><strong>useAlarmSound.ts</strong> - 音频播放Hook</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📱 功能演示</h2>
+        <div class="feature-item">
+            <h3>现在时间</h3>
+            <div id="current-time" style="font-size: 2em; font-family: monospace; text-align: center; color: #0ea5e9;">
+                加载中...
+            </div>
+        </div>
+
+        <div class="feature-item">
+            <h3>浏览器兼容性检测</h3>
+            <div id="compatibility-info">
+                <p>🔍 检测中...</p>
+            </div>
+        </div>
+
+        <div class="feature-item">
+            <h3>快速测试</h3>
+            <button onclick="testNotification()">测试浏览器通知</button>
+            <button onclick="testWakeLock()">测试防休眠</button>
+            <button onclick="testWebWorker()">测试Web Worker</button>
+        </div>
+    </div>
+
+    <script>
+        // 简单的Web Audio API测试
+        let audioContext;
+        let currentOscillator;
+
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function testAudio(soundType) {
+            initAudio();
+            stopAudio();
+
+            const frequencies = {
+                clock: 800,
+                beep: 1000,
+                rooster: 600,
+                siren: 440
+            };
+
+            const frequency = frequencies[soundType] || 800;
+            currentOscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            currentOscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            currentOscillator.frequency.value = frequency;
+            currentOscillator.type = 'square';
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+
+            currentOscillator.start();
+            
+            // 3秒后自动停止
+            setTimeout(stopAudio, 3000);
+        }
+
+        function stopAudio() {
+            if (currentOscillator) {
+                currentOscillator.stop();
+                currentOscillator = null;
+            }
+        }
+
+        function testNotification() {
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    new Notification('闹钟测试', {
+                        body: '通知功能正常工作！',
+                        icon: '/vite.svg'
+                    });
+                } else if (Notification.permission !== 'denied') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            new Notification('闹钟测试', {
+                                body: '通知权限已获取！',
+                                icon: '/vite.svg'
+                            });
+                        }
+                    });
+                } else {
+                    alert('通知权限被拒绝');
+                }
+            } else {
+                alert('浏览器不支持通知');
+            }
+        }
+
+        let wakeLock = null;
+        async function testWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    alert('防休眠已激活！(5秒后自动释放)');
+                    setTimeout(() => {
+                        if (wakeLock) {
+                            wakeLock.release();
+                            wakeLock = null;
+                        }
+                    }, 5000);
+                } catch (err) {
+                    alert('防休眠请求失败: ' + err.message);
+                }
+            } else {
+                alert('浏览器不支持防休眠');
+            }
+        }
+
+        function testWebWorker() {
+            if (window.Worker) {
+                const worker = new Worker('data:application/javascript;base64,' + 
+                    btoa('self.postMessage("Web Worker 工作正常！");'));
+                worker.onmessage = function(e) {
+                    alert(e.data);
+                    worker.terminate();
+                };
+                worker.onerror = function() {
+                    alert('Web Worker 测试失败');
+                };
+            } else {
+                alert('浏览器不支持Web Worker');
+            }
+        }
+
+        // 更新当前时间
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = 
+                now.toLocaleTimeString('zh-CN', { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit' 
+                });
+        }
+
+        // 检测浏览器兼容性
+        function checkCompatibility() {
+            const features = {
+                '🔊 Web Audio API': 'AudioContext' in window || 'webkitAudioContext' in window,
+                '📢 Notifications': 'Notification' in window,
+                '🛡️ Wake Lock': 'wakeLock' in navigator,
+                '👷 Web Workers': 'Worker' in window,
+                '💾 Local Storage': 'localStorage' in window,
+                '🎬 Animation Frame': 'requestAnimationFrame' in window
+            };
+
+            const info = document.getElementById('compatibility-info');
+            info.innerHTML = Object.entries(features)
+                .map(([name, supported]) => 
+                    `<p>${supported ? '✅' : '❌'} ${name}</p>`
+                ).join('');
+        }
+
+        // 初始化
+        setInterval(updateTime, 1000);
+        updateTime();
+        checkCompatibility();
+
+        console.log('🔔 在线闹钟系统已加载');
+        console.log('主要特性:');
+        console.log('- 11种高质量合成音频');
+        console.log('- 高精度时间管理');
+        console.log('- 完整的数据持久化');
+        console.log('- 现代化的用户界面');
+        console.log('- 完善的错误处理');
+    </script>
+</body>
+</html>

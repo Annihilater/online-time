@@ -1,0 +1,15 @@
+
+You are using Node.js 20.9.0. Vite requires Node.js version 20.19+ or 22.12+. Please upgrade your Node.js version.
+error when starting dev server:
+TypeError: crypto.hash is not a function
+    at getHash (file:///Users/ziji/github/online-time/node_modules/vite/dist/node/chunks/dep-Bj7gA1-0.js:2649:21)
+    at getLockfileHash (file:///Users/ziji/github/online-time/node_modules/vite/dist/node/chunks/dep-Bj7gA1-0.js:11523:9)
+    at getDepHash (file:///Users/ziji/github/online-time/node_modules/vite/dist/node/chunks/dep-Bj7gA1-0.js:11526:23)
+    at initDepsOptimizerMetadata (file:///Users/ziji/github/online-time/node_modules/vite/dist/node/chunks/dep-Bj7gA1-0.js:10979:53)
+    at createDepsOptimizer (file:///Users/ziji/github/online-time/node_modules/vite/dist/node/chunks/dep-Bj7gA1-0.js:34635:17)
+    at new DevEnvironment (file:///Users/ziji/github/online-time/node_modules/vite/dist/node/chunks/dep-Bj7gA1-0.js:35400:109)
+    at Object.defaultCreateClientDevEnvironment [as createEnvir    at Object.defaultC/z    aithub/online-time/node_modules/vite/dist/node/chunks/dep-Bj7gA1-0.js:35819:9)
+    at _createServer (file:///Users/ziji/github/online-time/node_modules/vite/dist/node/chunks/dep-Bj7gA1-0.js:28241:132)
+    at async CAC.<anonymous> (file:///Users/ziji/github/online-time/node_modules/vite/dist/node/cli.js:580:18)
+
+

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线闹钟</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .clock-digit {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
+        <h1 class="text-2xl font-bold text-center mb-6">在线闹钟</h1>
+        
+        <!-- 当前时间显示 -->
+        <div class="text-center mb-8">
+            <div class="text-lg text-gray-600 mb-2" id="date"></div>
+            <div class="text-6xl clock-digit text-gray-900 mb-4" id="time"></div>
+        </div>
+        
+        <!-- 设置闹钟 -->
+        <div class="space-y-4">
+            <h2 class="text-lg font-semibold">设置闹钟时间</h2>
+            
+            <div class="flex gap-4">
+                <div class="flex-1">
+                    <label class="block text-sm text-gray-600 mb-1">小时</label>
+                    <select id="hourSelect" class="w-full p-2 border rounded-lg">
+                        <!-- 小时选项 0-23 -->
+                    </select>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-sm text-gray-600 mb-1">分钟</label>
+                    <select id="minuteSelect" class="w-full p-2 border rounded-lg">
+                        <!-- 分钟选项 0-59 -->
+                    </select>
+                </div>
+            </div>
+            
+            <!-- 快捷时间按钮 -->
+            <div class="grid grid-cols-4 gap-2 mt-4">
+                <button class="preset-btn p-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-sm" data-time="05:00">05:00</button>
+                <button class="preset-btn p-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-sm" data-time="05:30">05:30</button>
+                <button class="preset-btn p-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-sm" data-time="06:00">06:00</button>
+                <button class="preset-btn p-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-sm" data-time="06:30">06:30</button>
+                <button class="preset-btn p-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-sm" data-time="07:00">07:00</button>
+                <button class="preset-btn p-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-sm" data-time="07:30">07:30</button>
+                <button class="preset-btn p-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-sm" data-time="08:00">08:00</button>
+                <button class="preset-btn p-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-sm" data-time="08:30">08:30</button>
+            </div>
+            
+            <!-- 闹钟声音 -->
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">闹钟声</label>
+                <div class="flex gap-2">
+                    <select id="soundSelect" class="flex-1 p-2 border rounded-lg">
+                        <option value="beep">蜂鸣声</option>
+                        <option value="rooster">公鸡声</option>
+                        <option value="alarm">警笛声</option>
+                        <option value="bell">钟声</option>
+                    </select>
+                    <button id="testSound" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg">测试</button>
+                </div>
+            </div>
+            
+            <!-- 闹钟名称 -->
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">闹钟名称</label>
+                <input id="alarmName" type="text" value="闹钟" class="w-full p-2 border rounded-lg">
+            </div>
+            
+            <!-- 设置按钮 -->
+            <button id="setAlarm" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold">
+                设置闹钟
+            </button>
+        </div>
+        
+        <!-- 闹钟状态 -->
+        <div id="alarmStatus" class="mt-6 p-4 bg-gray-100 rounded-lg text-center hidden">
+            <div id="alarmInfo" class="text-sm text-gray-600"></div>
+            <div id="countdown" class="text-2xl font-bold text-blue-600 mt-2"></div>
+            <button id="stopAlarm" class="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg hidden">
+                停止闹钟
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentAlarm = null;
+        let countdownInterval = null;
+        
+        // 初始化时间选择器
+        function initTimeSelectors() {
+            const hourSelect = document.getElementById('hourSelect');
+            const minuteSelect = document.getElementById('minuteSelect');
+            
+            // 添加小时选项
+            for (let i = 0; i < 24; i++) {
+                const option = document.createElement('option');
+                option.value = i.toString().padStart(2, '0');
+                option.textContent = i.toString().padStart(2, '0');
+                hourSelect.appendChild(option);
+            }
+            
+            // 添加分钟选项
+            for (let i = 0; i < 60; i++) {
+                const option = document.createElement('option');
+                option.value = i.toString().padStart(2, '0');
+                option.textContent = i.toString().padStart(2, '0');
+                minuteSelect.appendChild(option);
+            }
+        }
+        
+        // 更新时间显示
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('zh-CN', { 
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit', 
+                second: '2-digit'
+            });
+            const dateString = now.toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long'
+            });
+            
+            document.getElementById('time').textContent = timeString;
+            document.getElementById('date').textContent = dateString;
+            
+            // 检查闹钟
+            if (currentAlarm && !currentAlarm.ringing) {
+                const alarmTime = new Date();
+                alarmTime.setHours(parseInt(currentAlarm.hour));
+                alarmTime.setMinutes(parseInt(currentAlarm.minute));
+                alarmTime.setSeconds(0);
+                
+                if (now >= alarmTime) {
+                    triggerAlarm();
+                }
+                
+                updateCountdown();
+            }
+        }
+        
+        // 设置闹钟
+        function setAlarm() {
+            const hour = document.getElementById('hourSelect').value;
+            const minute = document.getElementById('minuteSelect').value;
+            const name = document.getElementById('alarmName').value;
+            const sound = document.getElementById('soundSelect').value;
+            
+            currentAlarm = {
+                hour,
+                minute,
+                name,
+                sound,
+                ringing: false
+            };
+            
+            showAlarmStatus();
+            updateCountdown();
+        }
+        
+        // 显示闹钟状态
+        function showAlarmStatus() {
+            const status = document.getElementById('alarmStatus');
+            const info = document.getElementById('alarmInfo');
+            
+            info.textContent = `闹钟已设置：${currentAlarm.hour}:${currentAlarm.minute} - ${currentAlarm.name}`;
+            status.classList.remove('hidden');
+        }
+        
+        // 更新倒计时
+        function updateCountdown() {
+            if (!currentAlarm || currentAlarm.ringing) return;
+            
+            const now = new Date();
+            const alarmTime = new Date();
+            alarmTime.setHours(parseInt(currentAlarm.hour));
+            alarmTime.setMinutes(parseInt(currentAlarm.minute));
+            alarmTime.setSeconds(0);
+            
+            if (alarmTime <= now) {
+                alarmTime.setDate(alarmTime.getDate() + 1);
+            }
+            
+            const diff = alarmTime - now;
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            document.getElementById('countdown').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        // 触发闹钟
+        function triggerAlarm() {
+            currentAlarm.ringing = true;
+            document.body.style.backgroundColor = '#fee2e2';
+            document.getElementById('countdown').textContent = '闹钟响了！';
+            document.getElementById('stopAlarm').classList.remove('hidden');
+            
+            // 播放声音（简单的beep）
+            playAlarmSound();
+            
+            // 发送通知
+            if (Notification.permission === 'granted') {
+                new Notification('闹钟', {
+                    body: currentAlarm.name,
+                    icon: '⏰'
+                });
+            }
+        }
+        
+        // 播放闹钟声音
+        function playAlarmSound() {
+            const context = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = context.createOscillator();
+            const gainNode = context.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(context.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0, context.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, context.currentTime + 0.1);
+            gainNode.gain.linearRampToValueAtTime(0, context.currentTime + 0.5);
+            
+            oscillator.start(context.currentTime);
+            oscillator.stop(context.currentTime + 0.5);
+            
+            if (currentAlarm && currentAlarm.ringing) {
+                setTimeout(() => playAlarmSound(), 1000);
+            }
+        }
+        
+        // 停止闹钟
+        function stopAlarm() {
+            if (currentAlarm) {
+                currentAlarm.ringing = false;
+            }
+            document.body.style.backgroundColor = '#f9fafb';
+            document.getElementById('alarmStatus').classList.add('hidden');
+            document.getElementById('stopAlarm').classList.add('hidden');
+            currentAlarm = null;
+        }
+        
+        // 事件监听器
+        document.getElementById('setAlarm').addEventListener('click', setAlarm);
+        document.getElementById('stopAlarm').addEventListener('click', stopAlarm);
+        
+        // 快捷按钮
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const time = btn.dataset.time.split(':');
+                document.getElementById('hourSelect').value = time[0];
+                document.getElementById('minuteSelect').value = time[1];
+            });
+        });
+        
+        // 测试声音
+        document.getElementById('testSound').addEventListener('click', () => {
+            playAlarmSound();
+        });
+        
+        // 请求通知权限
+        if (Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+        
+        // 初始化
+        initTimeSelectors();
+        setInterval(updateTime, 1000);
+        updateTime();
+    </script>
+</body>
+</html>
