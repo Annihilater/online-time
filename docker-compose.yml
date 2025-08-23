@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  # Production-like container for testing
+  online-time:
+    build:
+      context: .
+      dockerfile: docker/base/Dockerfile
+      platforms:
+        - linux/amd64
+      labels:
+        - "app.name=online-time"
+        - "app.version=dev"
+        - "build.type=compose"
+    image: online-time:dev
+    container_name: online-time-app
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - online-time-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.online-time.rule=Host(`localhost`)"
+      - "traefik.http.services.online-time.loadbalancer.server.port=80"
+
+  # Development container with hot reload
+  online-time-dev:
+    build:
+      context: .
+      dockerfile: docker/dev/Dockerfile
+      target: development
+    image: online-time:dev-hot
+    container_name: online-time-dev
+    ports:
+      - "5173:5173"  # Vite dev server
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_HMR_HOST=localhost
+    command: npm run dev -- --host 0.0.0.0
+    networks:
+      - online-time-network
+    profiles:
+      - dev
+
+  # Nginx proxy for advanced testing
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: online-time-proxy
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./docker/nginx/nginx-proxy.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - online-time
+    networks:
+      - online-time-network
+    profiles:
+      - proxy
+
+  # Health check service
+  healthcheck:
+    image: curlimages/curl:latest
+    container_name: online-time-healthcheck
+    depends_on:
+      - online-time
+    networks:
+      - online-time-network
+    profiles:
+      - monitoring
+    command: >
+      sh -c "
+        echo 'Waiting for application to start...'
+        sleep 30
+        while true; do
+          echo 'Health check at $(date)'
+          curl -f http://online-time/health || echo 'Health check failed'
+          sleep 60
+        done
+      "
+
+networks:
+  online-time-network:
+    driver: bridge
+    labels:
+      - "app.network=online-time"
+
+volumes:
+  node_modules:
+    driver: local
+
+# Additional configurations for different environments
+x-common-variables: &common-variables
+  TZ: UTC
+  LANG: en_US.UTF-8
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
