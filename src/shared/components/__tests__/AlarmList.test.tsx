@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@/test/test-utils'
 import { AlarmList } from '../AlarmList'
 import { mockAlarms } from '@/test/fixtures'
+import type { Alarm } from '@/shared/stores/alarmStore'
 
 // Mock store
 const mockStore = {
-  alarms: [] as any[],
+  alarms: [] as Alarm[],
   theme: 'light' as 'light' | 'dark',
   toggleAlarm: vi.fn(),
   removeAlarm: vi.fn(),
@@ -37,8 +38,16 @@ vi.mock('./AudioVisualizer', () => ({
   )
 }))
 
+interface MockAnimatedButtonProps {
+  children: React.ReactNode;
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: string;
+  [key: string]: unknown;
+}
+
 vi.mock('./AnimatedButton', () => ({
-  AnimatedButton: ({ children, onClick, icon, title, ...props }: any) => (
+  AnimatedButton: ({ children, onClick, icon, title, ...props }: MockAnimatedButtonProps) => (
     <button onClick={onClick} title={title} {...props}>
       {icon}
       {children}
@@ -75,11 +84,13 @@ describe('AlarmList', () => {
     const mockLink = {
       click: vi.fn(),
       setAttribute: vi.fn(),
-      style: {} as any
-    }
-    vi.spyOn(document, 'createElement').mockReturnValue(mockLink as any)
-    vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink as any)
-    vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink as any)
+      style: {} as CSSStyleDeclaration,
+      href: '',
+      download: ''
+    } as unknown as HTMLAnchorElement
+    vi.spyOn(document, 'createElement').mockReturnValue(mockLink)
+    vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink)
+    vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink)
   })
 
   it('没有闹钟时应该显示空状态', () => {

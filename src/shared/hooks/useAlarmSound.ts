@@ -86,12 +86,12 @@ export const useAlarmSound = () => {
     }
     
     return () => {
-      // 清理通知
-      const notificationsToClose = notificationRefs.current;
-      notificationsToClose.forEach(notification => {
+      // 清理通知 - 复制ref值避免闭包问题
+      const currentNotifications = notificationRefs.current;
+      currentNotifications.forEach(notification => {
         notification.close();
       });
-      notificationsToClose.clear();
+      currentNotifications.clear();
     };
   }, [alarms, enableNotifications]);
 

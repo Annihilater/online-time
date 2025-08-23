@@ -6,10 +6,10 @@
 
 | 分支 | 用途 | 触发构建 | 是否发布 | 部署环境 |
 |------|------|----------|----------|----------|
-| `master` | 主分支，稳定代码 | ✅ | ❌ | - |
-| `release` | 生产发布分支 | ✅ | ✅ GitHub Container Registry | 🎯 Production |
-| `test` | 测试分支 | ✅ | ❌ | 🧪 Testing |
-| `dev` | 开发分支 | ✅ | ❌ | 🚀 Development |
+| `master` | 主分支，稳定代码 | ✅ | ✅ GitHub Container Registry | - |
+| `release` | 生产发布分支 | ✅ | ✅ GitHub Container Registry + latest | 🎯 Production |
+| `test` | 测试分支 | ✅ | ✅ GitHub Container Registry | 🧪 Testing |
+| `dev` | 开发分支 | ✅ | ✅ GitHub Container Registry | 🚀 Development |
 
 ### 标签策略
 
@@ -28,7 +28,8 @@ git push origin dev
 ```
 
 **触发的Actions：**
-- ✅ 构建Docker镜像 (不推送)
+- ✅ 构建Docker镜像
+- 🐳 **推送到GitHub Container Registry**
 - ✅ 运行测试
 - 🚀 自动部署到开发环境
 - 🏷️ 镜像标签：`dev-{commit-sha}`
@@ -41,7 +42,8 @@ git push origin test
 ```
 
 **触发的Actions：**
-- ✅ 构建Docker镜像 (不推送)
+- ✅ 构建Docker镜像
+- 🐳 **推送到GitHub Container Registry**
 - ✅ 运行完整测试套件
 - 🧪 自动部署到测试环境
 - 🏷️ 镜像标签：`test-{commit-sha}`
@@ -82,9 +84,10 @@ git push origin v1.0.0
 - `1.0` - 主要版本号
 - `release-abc123` - release分支特定提交
 
-### 开发标签（仅构建，不推送）
+### 开发标签（全部发布）
 - `dev-abc123` - dev分支开发版本
 - `test-abc123` - test分支测试版本
+- `master-abc123` - master分支稳定版本
 - `pr-123` - Pull Request版本
 
 ## 🔧 GitHub Secrets配置
@@ -100,17 +103,22 @@ GitHub Container Registry 使用内置的 `GITHUB_TOKEN`，**无需额外配置S
 ### Development Environment
 - **触发**：`dev`分支推送
 - **用途**：最新功能验证
-- **镜像**：`dev-{sha}` (不推送到Hub)
+- **镜像**：`dev-{sha}` (发布到GitHub Container Registry)
 
 ### Testing Environment  
 - **触发**：`test`分支推送
 - **用途**：完整功能测试
-- **镜像**：`test-{sha}` (不推送到Hub)
+- **镜像**：`test-{sha}` (发布到GitHub Container Registry)
 
 ### Production Environment
 - **触发**：`release`分支推送或版本标签
 - **用途**：生产环境部署
-- **镜像**：`latest`, `v1.0.0` (推送到Hub)
+- **镜像**：`latest`, `release-{sha}`, `v1.0.0` (发布到GitHub Container Registry)
+
+### Master Environment
+- **触发**：`master`分支推送
+- **用途**：稳定版本验证
+- **镜像**：`master-{sha}` (发布到GitHub Container Registry)
 
 ## 🚀 快速开始
 

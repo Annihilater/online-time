@@ -23,13 +23,18 @@ const mockAudio = {
   paused: true,
 }
 
-global.Audio = vi.fn().mockImplementation(() => mockAudio) as any
+global.Audio = vi.fn().mockImplementation(() => mockAudio) as typeof Audio
 
 // Mock lucide-react icons
+interface MockIconProps {
+  size?: number;
+  [key: string]: unknown;
+}
+
 vi.mock('lucide-react', () => ({
-  Play: ({ size, ...props }: any) => <div data-testid="play-icon" {...props}>Play</div>,
-  Pause: ({ size, ...props }: any) => <div data-testid="pause-icon" {...props}>Pause</div>,
-  RotateCcw: ({ size, ...props }: any) => <div data-testid="rotate-icon" {...props}>Reset</div>,
+  Play: ({ ...props }: MockIconProps) => <div data-testid="play-icon" {...props}>Play</div>,
+  Pause: ({ ...props }: MockIconProps) => <div data-testid="pause-icon" {...props}>Pause</div>,
+  RotateCcw: ({ ...props }: MockIconProps) => <div data-testid="rotate-icon" {...props}>Reset</div>,
 }))
 
 describe('TimerPage', () => {

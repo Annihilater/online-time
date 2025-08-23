@@ -68,8 +68,8 @@ jobs:
           org.opencontainers.image.vendor=Claude Code
           org.opencontainers.image.licenses=MIT
 
-    - name: Log in to GitHub Container Registry (只在release分支或tag时执行)
-      if: github.ref_name == 'release' || startsWith(github.ref, 'refs/tags/v')
+    - name: Log in to GitHub Container Registry
+      if: github.event_name == 'push'
       uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
@@ -90,11 +90,11 @@ jobs:
         cache-to: type=gha,mode=max
         outputs: type=image,name=${{ env.IMAGE_NAME }},push=false
 
-  # 多架构镜像推送 - 只在release分支或tag时执行  
+  # 多架构镜像推送 - 所有push事件都发布  
   push:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref_name == 'release' || startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push'
     
     steps:
     - name: Checkout code
@@ -109,8 +109,10 @@ jobs:
       with:
         images: ${{ env.IMAGE_NAME }}
         tags: |
-          # release分支: latest + release-{sha}
-          type=ref,event=branch,prefix={{branch}}-,suffix=-{{sha}},enable=${{ github.ref_name == 'release' }}
+          # 所有分支: {branch}-{sha}
+          type=ref,event=branch,prefix={{branch}}-,suffix=-{{sha}}
+          
+          # release分支额外添加latest标签
           type=raw,value=latest,enable=${{ github.ref_name == 'release' }}
           
           # tags: v1.0.0 -> 1.0.0 + latest
@@ -167,7 +169,7 @@ jobs:
         echo "Branch: ${{ github.ref_name }}"
         echo "Commit: ${{ github.sha }}"
 
-  # 部署到生产环境 - 只在release分支或tag
+  # 部署到生产环境 - release分支或tag
   deploy-prod:
     needs: [build, push]
     runs-on: ubuntu-latest
@@ -182,11 +184,11 @@ jobs:
         echo "Commit: ${{ github.sha }}"
         echo "Available at: docker pull ${{ env.IMAGE_NAME }}:latest"
 
-  # 安全扫描 - 只在release分支或tag时执行
+  # 安全扫描 - 所有发布的镜像都扫描
   security-scan:
     needs: push
     runs-on: ubuntu-latest
-    if: github.ref_name == 'release' || startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push'
     
     steps:
     - name: Run Trivy vulnerability scanner
@@ -250,6 +252,6 @@ jobs:
           echo "❌ Build failed"
         fi
         
-        if [ "${{ github.ref_name }}" == "release" ] && [ "${{ needs.push.result }}" == "success" ]; then
-          echo "🐳 Docker image published to GitHub Container Registry"
+        if [ "${{ needs.push.result }}" == "success" ]; then
+          echo "🐳 Docker image published to GitHub Container Registry: ${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ github.sha }}"
         fi

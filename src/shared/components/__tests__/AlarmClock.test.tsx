@@ -80,7 +80,7 @@ describe('AlarmClock', () => {
     const mockGetState = vi.fn().mockReturnValue({
       updateSettings: mockUpdateSettings
     })
-    ;(useAlarmStore as any).getState = mockGetState
+    ;(useAlarmStore as typeof useAlarmStore & { getState: () => unknown }).getState = mockGetState
     
     render(<AlarmClock onOpenSettings={mockOnOpenSettings} />)
     

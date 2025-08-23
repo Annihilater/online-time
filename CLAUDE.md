@@ -73,16 +73,53 @@ npm run test:ui      # Vitest图形界面测试
 npm run test:coverage # 生成测试覆盖率报告
 ```
 
-### Git操作建议
+### Claude Code 自定义命令
+
+项目已配置Claude Code自定义命令（存储在`.claude/commands/`），简化开发流程：
 
 ```bash
-# 提交前检查清单
+# 完整提交流程（推荐）
+/commit                       # 执行完整检查：lint + test + build
+/feature-commit "feat: 新功能"  # 全流程：检查 + 添加 + 提交
+/hotfix-commit "fix: 修复"      # 热修复：快速检查 + 提交
+
+# 快速检查命令
+/check                        # 快速检查：lint + test（不构建）
+/quality-check                # 全面检查：lint + test + build + status
+
+# 单步操作命令
+/status                       # 检查Git仓库状态
+/diff                         # 显示文件修改差异
+/add                          # 添加所有文件到暂存区
+/lint                         # 运行ESLint代码检查
+/lint-fix                     # 自动修复ESLint问题
+/test                         # 运行完整测试套件
+/build                        # 验证生产构建
+
+# 开发辅助命令
+/dev-restart                  # 重启开发服务器
+/commit-guide                 # 查看完整的提交规范指南
+```
+
+**命令设计原则：**
+1. **单一职责** - 每个基础命令只做一件事
+2. **组合调用** - 复合命令通过shell脚本调用基础命令
+3. **清晰依赖** - 组合命令明确显示调用了哪些基础命令
+
+**使用方法：**
+1. 在Claude Code中输入`/`可看到所有自定义命令
+2. 选择命令后按回车执行
+3. 带参数的命令（如`/feature-commit`）会提示输入参数
+4. 复合命令会自动调用相关的单一命令
+
+### 传统Git操作（备用）
+
+```bash
+# 手动提交流程
 git status                    # 检查文件状态
 npm run lint                  # 代码规范检查
 npm run test:run             # 运行测试套件
 npm run build                # 验证构建成功
-
-# 标准提交流程
 git add .
 git commit -m "feat: 添加新功能描述"
 git push origin master

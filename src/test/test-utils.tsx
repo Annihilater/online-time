@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-refresh/only-export-components */
 import React, { type ReactElement } from 'react'
 import { render as rtlRender, type RenderOptions } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { vi, expect } from 'vitest'
+import type { Alarm } from '@/shared/stores/alarmStore'
 
 // 创建用于测试的Provider包装器
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
@@ -49,7 +52,7 @@ export const restoreRealTime = () => {
 }
 
 // 创建假的闹钟数据
-export const createMockAlarm = (overrides: Partial<any> = {}) => ({
+export const createMockAlarm = (overrides: Partial<Alarm> = {}) => ({
   id: 'test-alarm-' + Math.random().toString(36).substr(2, 9),
   time: new Date('2024-01-01 08:00:00'),
   isActive: true,

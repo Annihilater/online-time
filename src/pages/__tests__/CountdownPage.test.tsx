@@ -26,11 +26,16 @@ vi.mock('date-fns', () => ({
 }))
 
 // Mock lucide-react icons
+interface MockIconProps {
+  size?: number;
+  [key: string]: unknown;
+}
+
 vi.mock('lucide-react', () => ({
-  Calendar: ({ size, ...props }: any) => <div data-testid="calendar-icon" {...props}>Calendar</div>,
-  Clock: ({ size, ...props }: any) => <div data-testid="clock-icon" {...props}>Clock</div>,
-  Target: ({ size, ...props }: any) => <div data-testid="target-icon" {...props}>Target</div>,
-  Share2: ({ size, ...props }: any) => <div data-testid="share-icon" {...props}>Share</div>,
+  Calendar: ({ ...props }: MockIconProps) => <div data-testid="calendar-icon" {...props}>Calendar</div>,
+  Clock: ({ ...props }: MockIconProps) => <div data-testid="clock-icon" {...props}>Clock</div>,
+  Target: ({ ...props }: MockIconProps) => <div data-testid="target-icon" {...props}>Target</div>,
+  Share2: ({ ...props }: MockIconProps) => <div data-testid="share-icon" {...props}>Share</div>,
 }))
 
 describe('CountdownPage', () => {

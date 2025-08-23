@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import '@testing-library/jest-dom'
 import { expect, afterEach, beforeAll, afterAll, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
@@ -48,17 +49,17 @@ beforeAll(() => {
   }))
 
   // 设置全局AudioContext
-  global.AudioContext = MockAudioContext as any;
+  global.AudioContext = MockAudioContext as typeof AudioContext;
   
   // Mock webkitAudioContext for older browsers
-  ;(global as any).webkitAudioContext = MockAudioContext
+  ;(global as typeof global & { webkitAudioContext: typeof AudioContext }).webkitAudioContext = MockAudioContext
 
   // Mock Notification API
   global.Notification = vi.fn().mockImplementation((title, options) => ({
     title,
     ...options,
     close: vi.fn()
-  })) as any
+  })) as unknown as typeof Notification
 
   Object.defineProperty(global.Notification, 'permission', {
     value: 'granted',
