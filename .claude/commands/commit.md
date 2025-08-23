@@ -1,28 +1,26 @@
 ---
-description: "执行完整的代码提交流程，包含检查、测试和构建"
+description: "智能提交系统：自动检查代码质量并按模块分批提交"
 allowed-tools: "Bash(*)"
 ---
 
-执行完整的代码提交前检查流程：
+执行智能提交流程，自动按模块功能分批提交代码：
 
-!./scripts/commit-check.sh
+!./scripts/smart-commit.sh
 
-🔗 **此命令组合了以下单一命令：**
-- `/status` - Git状态检查
-- `/lint` - 代码规范检查  
-- `/test` - 测试套件运行
-- `/build` - 构建验证
+🚀 **智能提交特性：**
+- **自动质量检查** - lint + test + build 完整验证
+- **智能模块分组** - 自动识别文件类型并按模块分类：
+  - `claude-commands` - Claude Code自定义命令
+  - `scripts` - 自动化脚本和工具  
+  - `github-actions` - CI/CD配置
+  - `frontend-*` - 前端组件、页面、钩子等
+  - `config` - 项目配置文件
+  - `docker` - 容器化配置
+  - `docs` - 文档更新
+  - `misc` - 其他修改
+- **语义化提交** - 自动生成规范的提交信息
+- **批量提交** - 每个模块单独提交，清晰的变更历史
 
-📋 **提交规范指南：**
-1. **模块化提交** - 按功能模块分批提交，避免大杂烩提交
-2. **完整性原则** - 每次提交一个完整可运行的功能
-3. **语义化信息** - 使用规范的提交信息格式：
-   - `feat:` 新功能
-   - `fix:` 修复问题
-   - `docs:` 文档更新
-   - `style:` 代码格式化
-   - `refactor:` 代码重构
-   - `test:` 测试相关
-   - `chore:` 构建过程或辅助工具的变动
+📊 **提交顺序：** config → scripts → claude-commands → github-actions → docker → deploy → frontend-utils → frontend-hooks → frontend-stores → frontend-components → frontend-pages → frontend-tests → docs → misc
 
-💡 **提示：** 检查通过后，使用 `/add` + `git commit` 或直接使用 `/feature-commit`
+✅ **全自动流程：** 一个命令完成从检查到提交的全部流程
