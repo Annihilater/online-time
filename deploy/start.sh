@@ -42,8 +42,6 @@ show_help() {
     echo
     echo "部署模式:"
     echo "  basic      基础模式 (默认) - 应用 + Nginx"
-    echo "  full       完整模式 - 基础模式 + Redis"
-    echo "  ha         高可用模式 - 多实例 + 负载均衡 + 监控"
     echo
     echo "选项:"
     echo "  -h, --help     显示此帮助信息"
@@ -53,8 +51,7 @@ show_help() {
     echo
     echo "示例:"
     echo "  $0              # 基础模式启动"
-    echo "  $0 full         # 完整模式启动"
-    echo "  $0 ha --logs    # 高可用模式启动并显示日志"
+    echo "  $0 --logs       # 基础模式启动并显示日志"
 }
 
 # 检查环境
@@ -154,15 +151,11 @@ start_services() {
     local compose_file="docker-compose.prod.yml"
     local compose_args=""
     
-    if [[ "$mode" == "ha" ]]; then
-        compose_file="docker-compose.ha.yml"
-    fi
-    
     if [[ "$verbose" == "true" ]]; then
         compose_args="--verbose"
     fi
     
-    log "启动服务 - 模式: $mode"
+    log "启动服务 - 模式: basic"
     log "使用配置文件: $compose_file"
     
     # 拉取最新镜像
@@ -231,26 +224,13 @@ show_access_info() {
 show_status() {
     log "检查服务状态..."
     
-    local ha_running=false
-    local basic_running=false
-    
-    # 检查高可用模式
-    if docker-compose -f "docker-compose.ha.yml" ps -q 2>/dev/null | grep -q .; then
-        echo -e "${GREEN}高可用模式服务状态:${NC}"
-        docker-compose -f "docker-compose.ha.yml" ps
-        ha_running=true
-    fi
-    
-    # 检查基础/完整模式
-    if docker-compose -f "docker-compose.prod.yml" ps -q 2>/dev/null | grep -q .; then
-        echo -e "${GREEN}基础/完整模式服务状态:${NC}"
-        docker-compose -f "docker-compose.prod.yml" ps
-        basic_running=true
-    fi
-    
-    if [[ "$ha_running" == "false" ]] && [[ "$basic_running" == "false" ]]; then
+    # 检查服务状态
+    if docker-compose -p "${COMPOSE_PROJECT_NAME:-online-time-prod}" -f "docker-compose.prod.yml" ps -q 2>/dev/null | grep -q .; then
+        echo -e "${GREEN}服务状态:${NC}"
+        docker-compose -p "${COMPOSE_PROJECT_NAME:-online-time-prod}" -f "docker-compose.prod.yml" ps
+    else
         warn "没有检测到运行中的服务"
-        echo "使用 './start.sh [模式]' 启动服务"
+        echo "使用 './start.sh' 启动服务"
     fi
 }
 
@@ -284,7 +264,7 @@ main() {
                 # 默认就是后台运行
                 shift
                 ;;
-            basic|full|ha)
+            basic)
                 mode="$1"
                 shift
                 ;;

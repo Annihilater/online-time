@@ -133,39 +133,19 @@ graceful_stop() {
     
     log "开始优雅停止服务..."
     
-    # 直接检查服务状态
+    # 检查并停止服务
     local project_name="${COMPOSE_PROJECT_NAME:-online-time-prod}"
-    local ha_running=false
-    local basic_running=false
     
-    # 检查高可用模式
-    if docker-compose -p "$project_name" -f "docker-compose.ha.yml" ps -q 2>/dev/null | grep -q .; then
-        ha_running=true
-    fi
-    
-    # 检查基础/完整模式
+    # 检查是否有运行的服务
     if docker-compose -p "$project_name" -f "docker-compose.prod.yml" ps -q 2>/dev/null | grep -q .; then
-        basic_running=true
-    fi
-    
-    # 停止高可用模式服务
-    if [[ "$ha_running" == "true" ]]; then
-        log "停止高可用模式服务..."
-        if docker-compose -p "$project_name" -f "docker-compose.ha.yml" stop $compose_args; then
-            success "高可用模式服务已停止"
-        else
-            error "高可用模式服务停止失败"
-        fi
-    fi
-    
-    # 停止基础/完整模式服务
-    if [[ "$basic_running" == "true" ]]; then
-        log "停止基础/完整模式服务..."
+        log "停止服务..."
         if docker-compose -p "$project_name" -f "docker-compose.prod.yml" stop $compose_args; then
-            success "基础/完整模式服务已停止"
+            success "服务已停止"
         else
-            error "基础/完整模式服务停止失败"
+            error "服务停止失败"
         fi
+    else
+        warn "没有检测到运行中的服务"
     fi
 }
 
@@ -192,24 +172,16 @@ force_stop() {
     
     log "开始强制停止服务..."
     
-    # 强制停止高可用模式服务
-    if docker-compose -p "$project_name" -f "docker-compose.ha.yml" ps -q 2>/dev/null | grep -q .; then
-        log "强制停止高可用模式服务..."
-        if docker-compose -p "$project_name" -f "docker-compose.ha.yml" down $compose_args; then
-            success "高可用模式服务已强制停止"
-        else
-            warn "高可用模式服务强制停止时出现问题"
-        fi
-    fi
-    
-    # 强制停止基础/完整模式服务
+    # 强制停止服务
     if docker-compose -p "$project_name" -f "docker-compose.prod.yml" ps -q 2>/dev/null | grep -q .; then
-        log "强制停止基础/完整模式服务..."
+        log "强制停止服务..."
         if docker-compose -p "$project_name" -f "docker-compose.prod.yml" down $compose_args; then
-            success "基础/完整模式服务已强制停止"
+            success "服务已强制停止"
         else
-            warn "基础/完整模式服务强制停止时出现问题"
+            warn "强制停止时出现问题"
         fi
+    else
+        warn "没有检测到运行中的服务"
     fi
 }
 

@@ -48,29 +48,8 @@ services:
       timeout: 5s
       retries: 3
 
-  # Redis (可选，用于缓存和会话存储)
-  redis:
-    image: redis:7-alpine
-    container_name: online-time-redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
-    volumes:
-      - ./data/redis:/data
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-    profiles:
-      - full
-      - ha
 
 networks:
   app-network:
     driver: bridge
 
-volumes:
-  redis_data:
-    driver: local
