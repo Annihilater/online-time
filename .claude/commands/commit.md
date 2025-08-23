@@ -5,7 +5,7 @@ allowed-tools: "Bash(*)"
 
 执行智能提交流程，自动按模块功能分批提交代码：
 
-!./scripts/smart-commit.sh
+!bash ./scripts/smart-commit.sh
 
 🚀 **智能提交特性：**
 - **自动质量检查** - lint + test + build 完整验证
