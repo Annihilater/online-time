@@ -13,8 +13,10 @@ dist-ssr
 *.local
 
 # Editor directories and files
-.vscode/*
+.vscode/settings.json.backup
 !.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
 .idea
 .DS_Store
 *.suo
@@ -22,3 +24,20 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Coverage and test reports
+coverage/
+.nyc_output/
+test-results/
+
+# Cache directories
+.cache/
+.eslintcache
+.vite/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
