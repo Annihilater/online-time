@@ -49,7 +49,7 @@ export const AudioUtils = {
    * 检查浏览器是否支持 Web Audio API
    */
   isWebAudioSupported(): boolean {
-    return !!(window.AudioContext || (window as any).webkitAudioContext);
+    return !!(window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
   },
 
   /**

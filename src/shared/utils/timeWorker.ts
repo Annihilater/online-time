@@ -3,9 +3,11 @@
  * 使用 Web Worker 处理时间计算，避免主线程阻塞
  */
 
+import type { Alarm } from '@/shared/stores/alarmStore';
+
 export interface TimeWorkerMessage {
   type: 'START' | 'STOP' | 'SYNC' | 'CHECK_ALARMS';
-  data?: any;
+  data?: { alarms?: Alarm[] } | { interval?: number };
 }
 
 export interface TimeWorkerResponse {
@@ -183,7 +185,7 @@ export class TimeWorkerManager {
     }
   }
 
-  syncAlarms(alarms: any[]) {
+  syncAlarms(alarms: Alarm[]) {
     if (this.worker) {
       this.worker.postMessage({
         type: 'SYNC',

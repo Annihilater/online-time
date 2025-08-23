@@ -235,7 +235,7 @@ export const useAlarmStore = create<AlarmState>()(persist((set, get) => ({
     enableWakeLock: boolean;
     snoozeMinutes: number;
   }>) => {
-    const updates: any = {};
+    const updates: Partial<typeof initialState> = {};
     
     if (settings.theme) {
       updates.theme = settings.theme;

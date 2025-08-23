@@ -47,7 +47,7 @@ export const TimerPage: React.FC = () => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning, time, selectedSound, volume]);
+  }, [isRunning, time, selectedSound, volume, timerName, initialTime]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -249,7 +249,7 @@ export const TimerPage: React.FC = () => {
                   setInputMinutes('0');
                   setInputSeconds(preset.seconds.toString());
                 } else {
-                  setInputMinutes(preset.minutes.toString());
+                  setInputMinutes(preset.minutes?.toString() || '0');
                   setInputSeconds('0');
                 }
               }
@@ -312,7 +312,7 @@ export const TimerPage: React.FC = () => {
                         }`}>{record.name}</td>
                         <td className={`p-3 text-center font-mono ${
                           theme === 'dark' ? 'text-blue-400' : 'text-blue-600'
-                        }`}>{formatTime(record.duration * 1000, false)}</td>
+                        }`}>{formatTime(record.duration)}</td>
                         <td className={`p-3 text-center text-sm ${
                           theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                         }`}>{record.completedAt.toLocaleString()}</td>
@@ -325,7 +325,6 @@ export const TimerPage: React.FC = () => {
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 };

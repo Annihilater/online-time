@@ -87,10 +87,11 @@ export const useAlarmSound = () => {
     
     return () => {
       // 清理通知
-      notificationRefs.current.forEach(notification => {
+      const notificationsToClose = notificationRefs.current;
+      notificationsToClose.forEach(notification => {
         notification.close();
       });
-      notificationRefs.current.clear();
+      notificationsToClose.clear();
     };
   }, [alarms, enableNotifications]);
 

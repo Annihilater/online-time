@@ -317,6 +317,6 @@ export const animateThemeTransition = (element: HTMLElement) => {
   if (animationController.shouldReduceMotion()) return;
   
   element.style.transition = 'none';
-  element.offsetHeight; // Trigger reflow
+  void element.offsetHeight; // Trigger reflow - this is intentional
   element.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
 };

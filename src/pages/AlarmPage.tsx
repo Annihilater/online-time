@@ -5,6 +5,7 @@ import { PresetTimes } from '@/shared/components/PresetTimes';
 import { SoundSelector } from '@/shared/components/SoundSelector';
 import { AlarmList } from '@/shared/components/AlarmList';
 import { useAlarmSound } from '@/shared/hooks/useAlarmSound';
+import { useAlarmStore } from '@/shared/stores/alarmStore';
 import { useEffect } from 'react';
 
 interface AlarmPageProps {
@@ -13,6 +14,7 @@ interface AlarmPageProps {
 
 export const AlarmPage: React.FC<AlarmPageProps> = ({ onOpenSettings }) => {
   const { isRinging } = useAlarmSound();
+  const theme = useAlarmStore((state) => state.theme);
   
   // Prevent page reload when alarm is ringing
   useEffect(() => {
