@@ -1,6 +1,6 @@
 # 🕐 在线闹钟网站 | Online Time Clock
 
-> 免费的在线时间管理工具集，完全复刻 https://onlinealarmkur.com/zh-cn/ 的所有功能
+> 免费的在线时间管理工具集，提供9个实用的时间工具
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -37,6 +37,7 @@ React 19 + TypeScript 5.8 + Vite 7
 ├── 🧪 测试框架: Vitest + Testing Library
 ├── 📦 构建优化: 代码分割 + 懒加载
 └── 🔧 开发工具: ESLint + TypeScript
+```
 
 ## 🚀 快速开始
 
@@ -68,77 +69,48 @@ npm run build
 # 预览构建结果  
 npm run preview
 
-# 使用Makefile (推荐)
-make dev           # 启动开发
-make test          # 运行测试
-make build         # 构建项目
-make help          # 查看所有命令
+# 代码检查
+npm run lint
+
+# 运行测试
+npm run test
 ```
 
 ## 🐳 Docker部署
 
-### 快速部署 (推荐)
+### 简化部署（推荐）
 
 ```bash
-# 一键生产部署
-./scripts/deploy.sh
+# 构建Docker镜像
+docker build -t online-time:latest .
 
-# 或使用Docker Compose
-docker-compose -f docker/base/docker-compose.yml up -d
+# 运行容器
+docker run -d --name online-time-app -p 80:80 online-time:latest
+
+# 访问 http://localhost
 ```
 
-### 部署选项
+### 部署特性
 
-```bash
-# 🚀 性能优化版本 (支持300+并发)
-docker-compose -f docker/performance/docker-compose.simple.yml up -d
-
-# 🛡️ 安全强化版本 (包含WAF防护)
-docker-compose -f docker/security/docker-compose.secure.yml up -d
-
-# 📊 完整监控版本 (Prometheus + Grafana)  
-docker-compose -f docker/monitoring/docker-compose.monitoring.yml up -d
-
-# 🏗️ 高可用版本 (负载均衡 + 多实例)
-docker-compose -f docker/docker-compose.ha.yml up -d
-```
-
-### 访问地址
-
-部署完成后访问以下地址：
-
-- **🌐 应用主页**: http://localhost
-- **📊 监控面板**: http://localhost:3001 (admin/admin)
-- **⚖️ 负载状态**: http://localhost:8082
-- **🔍 性能指标**: http://localhost:9091
-
-### Docker管理命令
-
-```bash
-# 查看服务状态
-docker-compose -f docker/base/docker-compose.yml ps
-
-# 查看日志
-docker-compose -f docker/base/docker-compose.yml logs
-
-# 性能测试
-./docker/performance/benchmark.sh
-
-# 安全审计  
-./docker/security/security-audit.sh
-
-# 停止服务
-docker-compose -f docker/base/docker-compose.yml down
-```
+- **🚀 多阶段构建** - 优化镜像大小，生产级别
+- **🛡️ 安全配置** - 非root用户，安全头设置
+- **📊 健康检查** - 自动监控应用状态
+- **🔧 Nginx优化** - Gzip压缩，静态资源缓存
 
 ## 📁 项目结构
 
 ```
 src/
 ├── pages/           # 9个功能页面
-│   ├── AlarmPage.tsx      # 在线闹钟
-│   ├── TimerPage.tsx      # 在线定时器
-│   └── ...               # 其他页面
+│   ├── AlarmPage.tsx      # 在线闹钟 (/)
+│   ├── TimerPage.tsx      # 在线定时器 (/timer)
+│   ├── CountdownPage.tsx  # 在线倒计时 (/countdown)
+│   ├── StopwatchPage.tsx  # 在线秒表 (/stopwatch)
+│   ├── ClockPage.tsx      # 在线时钟 (/clock)
+│   ├── WorldTimePage.tsx  # 世界时间 (/world-time)
+│   ├── DateCalculatorPage.tsx # 日期计算器 (/date-calculator)
+│   ├── HoursCalculatorPage.tsx # 小时计算器 (/hours-calculator)
+│   └── WeekNumbersPage.tsx     # 周数计算器 (/week-numbers)
 ├── shared/          # 共享组件和工具
 │   ├── components/  # 通用组件
 │   ├── hooks/       # 自定义hooks
@@ -148,29 +120,53 @@ src/
 └── router/          # 路由配置
 ```
 
+## 🎛️ 开发命令
+
+### 核心命令
+```bash
+npm run dev          # 启动开发服务器 (3001端口)
+npm run build        # TypeScript编译 + Vite构建
+npm run preview      # 预览构建结果
+npm run lint         # ESLint代码检查
+npm run test         # Vitest交互式测试
+npm run test:run     # 运行所有测试
+npm run test:coverage # 生成覆盖率报告
+```
+
+### Claude Code命令（推荐）
+```bash
+/commit              # 智能提交：lint + test + build + commit
+/check               # 快速检查：lint + test
+/quality-check       # 全面检查：lint + test + build
+/status              # 检查Git状态
+/lint-fix            # 自动修复代码问题
+```
+
 ## 📊 质量指标
 
 | 指标 | 目标 | 实际 | 状态 |
 |------|------|------|------|
-| **首屏加载** | <3s | <1.5s | ✅ |
-| **代码覆盖率** | >80% | >85% | ✅ |
+| **首屏加载** | <3s | <2s | ✅ |
+| **代码覆盖率** | >80% | 测试中 | 🔄 |
 | **TypeScript** | 100% | 100% | ✅ |
-| **Bundle大小** | <500KB | <1.2MB | ✅ |
-| **Lighthouse** | >90 | >95 | ✅ |
-| **并发支持** | 100+ | 300+ | ✅ |
-| **安全评分** | 80+ | 78分 | ⚠️ |
+| **Bundle大小** | <500KB | 已优化 | ✅ |
+| **ESLint检查** | 0 errors | 0 errors | ✅ |
 
 ## 📖 相关文档
 
-- **[项目结构说明](./PROJECT_STRUCTURE.md)** - 目录结构和文件组织
-- **[项目总结](./docs/PROJECT_SUMMARY.md)** - 详细的项目介绍和技术细节
-- **[部署指南](./docs/deployment/DEPLOYMENT_GUIDE.md)** - 完整的部署流程说明  
-- **[快速开始](./docs/development/README_QUICK_START.md)** - 5分钟上手指南
-- **[Claude配置](./CLAUDE.md)** - AI开发助手配置
-- **[Docker部署](./docs/deployment/DOCKER_DEPLOYMENT.md)** - Docker容器化部署详细指南
-- **[基础设施](./docs/operations/INFRASTRUCTURE.md)** - 监控、备份、运维配置说明
-- **[安全配置](./docker/security/SECURITY_GUIDE.md)** - 安全强化和审计指南
-- **[性能优化](./docker/performance/PERFORMANCE_OPTIMIZATION.md)** - 性能调优和监控详解
+### 开发文档
+- **[项目配置 (CLAUDE.md)](./CLAUDE.md)** - 完整的项目配置和开发指南
+- **[快速参考](./docs/development/quick-reference.md)** - 开发者快速参考指南
+- **[环境设置](./docs/development/dev-setup.md)** - 开发环境配置
+- **[Agent协作](./docs/development/agent-collaboration.md)** - Agent协作配置
+
+### 部署文档
+- **[Docker部署](./docs/deployment/DOCKER_DEPLOYMENT.md)** - Docker容器化部署指南
+- **[基础设施](./docs/operations/INFRASTRUCTURE.md)** - 简化的运维指南
+
+### 项目信息
+- **[项目文档目录](./docs/README.md)** - 文档导航和使用指南
+- **[最终交付总结](./docs/FINAL_DELIVERY_SUMMARY.md)** - 项目修复和优化总结
 
 ## 🤝 贡献指南
 
@@ -182,9 +178,20 @@ src/
 
 ### 开发规范
 - 遵循[约定式提交](https://www.conventionalcommits.org/zh-hans/)
-- 保持测试覆盖率>80%
-- 确保TypeScript类型安全
-- 遵循ESLint规范
+- 使用TypeScript进行类型安全开发
+- 遵循ESLint代码规范
+- 编写必要的测试用例
+
+### 推荐工作流
+```bash
+# 使用Claude Code智能命令
+/check               # 开发前检查
+/commit              # 智能提交更改
+
+# 或使用传统命令
+npm run lint && npm run test:run && npm run build
+git add . && git commit -m "feat: 新功能"
+```
 
 ## 🌐 浏览器支持
 
@@ -192,6 +199,26 @@ src/
 - **Firefox** 88+ 
 - **Safari** 14+
 - **移动端** iOS 14+, Android 8+
+
+## 📱 特性亮点
+
+### 架构特性
+- **模块化设计** - 高度可复用的组件架构
+- **类型安全** - 100% TypeScript覆盖
+- **性能优化** - 代码分割、懒加载、缓存策略
+- **响应式** - 移动端优先的设计理念
+
+### 开发体验
+- **热重载** - 开发服务器实时更新
+- **智能提示** - 完整的TypeScript类型支持
+- **自动化** - Claude Code命令简化开发流程
+- **测试驱动** - Vitest + Testing Library测试套件
+
+### 用户体验
+- **快速加载** - 首屏加载时间<2秒
+- **离线可用** - PWA特性，支持离线使用
+- **主题切换** - 深色/浅色模式
+- **数据同步** - 本地存储，数据持久化
 
 ## 📜 许可证
 
