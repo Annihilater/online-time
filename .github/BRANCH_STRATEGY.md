@@ -7,7 +7,7 @@
 | 分支 | 用途 | 触发构建 | 是否发布 | 部署环境 |
 |------|------|----------|----------|----------|
 | `master` | 主分支，稳定代码 | ✅ | ❌ | - |
-| `release` | 生产发布分支 | ✅ | ✅ Docker Hub | 🎯 Production |
+| `release` | 生产发布分支 | ✅ | ✅ GitHub Container Registry | 🎯 Production |
 | `test` | 测试分支 | ✅ | ❌ | 🧪 Testing |
 | `dev` | 开发分支 | ✅ | ❌ | 🚀 Development |
 
@@ -55,7 +55,7 @@ git push origin release
 
 **触发的Actions：**
 - ✅ 构建Docker镜像
-- 🐳 **推送到Docker Hub**
+- 🐳 **推送到GitHub Container Registry**
 - 🔒 安全漏洞扫描
 - 🎯 自动部署到生产环境
 - 🏷️ 镜像标签：`latest`, `release-{commit-sha}`
@@ -69,7 +69,7 @@ git push origin v1.0.0
 
 **触发的Actions：**
 - ✅ 构建Docker镜像
-- 🐳 **推送到Docker Hub**
+- 🐳 **推送到GitHub Container Registry**
 - 🔒 安全漏洞扫描
 - 📝 自动创建GitHub Release
 - 🏷️ 镜像标签：`latest`, `1.0.0`, `1.0`
@@ -89,12 +89,11 @@ git push origin v1.0.0
 
 ## 🔧 GitHub Secrets配置
 
-在GitHub仓库设置中配置以下Secrets：
+GitHub Container Registry 使用内置的 `GITHUB_TOKEN`，**无需额外配置Secrets**！
 
-```bash
-DOCKER_USERNAME=your-dockerhub-username
-DOCKER_PASSWORD=your-dockerhub-password
-```
+- ✅ **自动认证**：GitHub Actions 自动提供认证令牌
+- ✅ **零配置**：无需设置用户名密码
+- ✅ **安全可靠**：基于仓库权限自动管理
 
 ## 📊 环境部署策略
 
