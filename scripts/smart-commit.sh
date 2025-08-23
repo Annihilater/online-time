@@ -1,7 +1,21 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # 智能提交脚本 - 按模块功能自动分批提交
 set -e
+
+# 确保使用bash并检查版本
+if [ -z "$BASH_VERSION" ]; then
+    echo "❌ 此脚本需要bash运行环境"
+    echo "请使用: bash ./scripts/smart-commit.sh"
+    exit 1
+fi
+
+# 检查bash版本是否支持关联数组（bash 4.0+）
+if [ "${BASH_VERSION:0:1}" -lt 4 ]; then
+    echo "❌ 此脚本需要bash 4.0或更高版本"
+    echo "当前版本: $BASH_VERSION"
+    exit 1
+fi
 
 echo "🤖 智能提交流程开始..."
 echo
@@ -42,49 +56,55 @@ echo "发现修改的文件："
 echo "$MODIFIED_FILES" | sed 's/^/  - /'
 echo
 
-# 定义模块分组规则
-declare -A modules
-modules=(
-    ["claude-commands"]="\.claude/commands/.*\.md$"
-    ["scripts"]="scripts/.*\.sh$"
-    ["github-actions"]="\.github/.*\.yml$"
-    ["docs"]=".*\.md$ README.*"
-    ["frontend-components"]="src/.*components/.*\.(tsx|ts|css)$"
-    ["frontend-pages"]="src/.*pages/.*\.(tsx|ts|css)$" 
-    ["frontend-hooks"]="src/.*hooks/.*\.(tsx|ts)$"
-    ["frontend-stores"]="src/.*stores/.*\.(tsx|ts)$"
-    ["frontend-utils"]="src/.*utils/.*\.(tsx|ts)$"
-    ["frontend-tests"]="src/.*test.*\.(tsx|ts)$"
-    ["config"]=".*config.*\.(json|js|ts)$|package\.json|tsconfig\.json|vite\.config\.*"
-    ["docker"]="docker/.*|Dockerfile.*|\.dockerignore"
-    ["deploy"]="deploy/.*"
-)
+# 模块匹配函数
+get_module_for_file() {
+    local file="$1"
+    
+    # 按优先级检查模块
+    if echo "$file" | grep -qE "\.claude/commands/.*\.md$"; then
+        echo "claude-commands"
+    elif echo "$file" | grep -qE "scripts/.*\.sh$"; then
+        echo "scripts"
+    elif echo "$file" | grep -qE "\.github/.*\.ya?ml$"; then
+        echo "github-actions"
+    elif echo "$file" | grep -qE "src/.*(components|shared/components)/.*\.(tsx?|css)$"; then
+        echo "frontend-components"
+    elif echo "$file" | grep -qE "src/.*pages/.*\.tsx?$"; then
+        echo "frontend-pages"
+    elif echo "$file" | grep -qE "src/.*hooks/.*\.tsx?$"; then
+        echo "frontend-hooks"
+    elif echo "$file" | grep -qE "src/.*stores/.*\.tsx?$"; then
+        echo "frontend-stores"
+    elif echo "$file" | grep -qE "src/.*utils/.*\.tsx?$"; then
+        echo "frontend-utils"
+    elif echo "$file" | grep -qE "src/.*test.*\.(tsx?|test\.tsx?|spec\.tsx?)$"; then
+        echo "frontend-tests"
+    elif echo "$file" | grep -qE "(.*config.*\.(json|js|ts)$|package\.json|tsconfig\.json|vite\.config\..*|tailwind\.config\..*|eslint\.config\..*|vitest\.config\..*)"; then
+        echo "config"
+    elif echo "$file" | grep -qE "(docker/.*|Dockerfile.*|\.dockerignore|docker-compose\..*\.ya?ml)"; then
+        echo "docker"
+    elif echo "$file" | grep -qE "deploy/.*"; then
+        echo "deploy"
+    elif echo "$file" | grep -qE ".*\.md$|README.*|CHANGELOG.*|LICENSE.*"; then
+        echo "docs"
+    else
+        echo "misc"
+    fi
+}
 
 # 按模块分组文件
-declare -A grouped_files
+echo "🔍 按模块分组文件..."
+
+# 创建临时文件存储分组结果
+TEMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TEMP_DIR"' EXIT
+
 for file in $MODIFIED_FILES; do
-    matched=false
-    for module in "${!modules[@]}"; do
-        if echo "$file" | grep -E "${modules[$module]}" > /dev/null; then
-            if [[ -z "${grouped_files[$module]}" ]]; then
-                grouped_files[$module]="$file"
-            else
-                grouped_files[$module]="${grouped_files[$module]} $file"
-            fi
-            matched=true
-            break
-        fi
-    done
-    
-    # 如果没匹配到任何模块，放入misc
-    if [[ "$matched" == false ]]; then
-        if [[ -z "${grouped_files['misc']}" ]]; then
-            grouped_files['misc']="$file"
-        else
-            grouped_files['misc']="${grouped_files['misc']} $file"
-        fi
-    fi
+    module=$(get_module_for_file "$file")
+    echo "$file" >> "$TEMP_DIR/$module.txt"
+    echo "  $file → $module"
 done
+echo
 
 # 定义提交顺序（重要的先提交）
 commit_order=("config" "scripts" "claude-commands" "github-actions" "docker" "deploy" "frontend-utils" "frontend-hooks" "frontend-stores" "frontend-components" "frontend-pages" "frontend-tests" "docs" "misc")
@@ -93,9 +113,16 @@ commit_count=0
 
 # 按顺序提交每个模块
 for module in "${commit_order[@]}"; do
-    if [[ -n "${grouped_files[$module]}" ]]; then
+    module_file="$TEMP_DIR/$module.txt"
+    if [[ -f "$module_file" && -s "$module_file" ]]; then
         echo "📦 提交模块: $module"
-        files=(${grouped_files[$module]})
+        
+        # 读取该模块的文件列表
+        files=()
+        while IFS= read -r file; do
+            files+=("$file")
+        done < "$module_file"
+        
         echo "  文件: ${files[@]}"
         
         # 添加该模块的文件
