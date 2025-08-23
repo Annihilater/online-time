@@ -1,0 +1,223 @@
+# =================================
+# 在线时间工具 - Prometheus 告警规则
+# =================================
+
+groups:
+  - name: application.rules
+    rules:
+      # 应用可用性告警
+      - alert: AppDown
+        expr: up{job="online-time-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "应用实例 {{ $labels.instance }} 不可用"
+          description: "应用实例 {{ $labels.instance }} 已经宕机超过1分钟"
+          runbook_url: "https://github.com/your-org/runbooks/app-down"
+          
+      - alert: AppHighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="online-time-app"}[5m])) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "应用响应时间过长"
+          description: "应用 {{ $labels.instance }} 95%响应时间超过500ms，当前值：{{ $value }}s"
+          
+      - alert: AppHighErrorRate
+        expr: rate(http_requests_total{job="online-time-app",status=~"5.."}[5m]) / rate(http_requests_total{job="online-time-app"}[5m]) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+          category: reliability
+        annotations:
+          summary: "应用错误率过高"
+          description: "应用 {{ $labels.instance }} 5xx错误率超过1%，当前值：{{ $value | humanizePercentage }}"
+          
+      - alert: AppLowThroughput
+        expr: rate(http_requests_total{job="online-time-app"}[5m]) < 1
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "应用流量异常低"
+          description: "应用 {{ $labels.instance }} 请求率低于1 req/s，当前值：{{ $value }}"
+
+  - name: system.rules
+    rules:
+      # 系统资源告警
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+          category: resource
+        annotations:
+          summary: "CPU使用率过高"
+          description: "主机 {{ $labels.instance }} CPU使用率超过80%，当前值：{{ $value }}%"
+          
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 2m
+        labels:
+          severity: warning
+          category: resource
+        annotations:
+          summary: "内存使用率过高"
+          description: "主机 {{ $labels.instance }} 内存使用率超过85%，当前值：{{ $value }}%"
+          
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 90
+        for: 1m
+        labels:
+          severity: critical
+          category: resource
+        annotations:
+          summary: "磁盘空间不足"
+          description: "主机 {{ $labels.instance }} 根分区使用率超过90%，当前值：{{ $value }}%"
+          
+      - alert: HighDiskIOWait
+        expr: avg by(instance) (rate(node_cpu_seconds_total{mode="iowait"}[2m])) * 100 > 30
+        for: 2m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "磁盘IO等待时间过长"
+          description: "主机 {{ $labels.instance }} IO等待时间超过30%，当前值：{{ $value }}%"
+
+  - name: container.rules
+    rules:
+      # 容器监控告警
+      - alert: ContainerDown
+        expr: up{job="cadvisor"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "容器监控不可用"
+          description: "cAdvisor在 {{ $labels.instance }} 上不可用"
+          
+      - alert: ContainerHighMemoryUsage
+        expr: (container_memory_usage_bytes{name!=""} / container_spec_memory_limit_bytes{name!=""} * 100) > 90
+        for: 2m
+        labels:
+          severity: warning
+          category: resource
+        annotations:
+          summary: "容器内存使用率过高"
+          description: "容器 {{ $labels.name }} 内存使用率超过90%，当前值：{{ $value }}%"
+          
+      - alert: ContainerHighCPUUsage
+        expr: (rate(container_cpu_usage_seconds_total{name!=""}[3m]) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+          category: resource
+        annotations:
+          summary: "容器CPU使用率过高"
+          description: "容器 {{ $labels.name }} CPU使用率超过80%，当前值：{{ $value }}%"
+
+  - name: network.rules
+    rules:
+      # 网络监控告警
+      - alert: HAProxyDown
+        expr: up{job="haproxy"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "HAProxy负载均衡器不可用"
+          description: "HAProxy在 {{ $labels.instance }} 上不可用"
+          
+      - alert: HAProxyBackendDown
+        expr: haproxy_server_up{proxy!="stats"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "HAProxy后端服务器不可用"
+          description: "HAProxy后端服务器 {{ $labels.server }} 在代理 {{ $labels.proxy }} 中不可用"
+          
+      - alert: NginxDown
+        expr: up{job="nginx"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Nginx服务不可用"
+          description: "Nginx在 {{ $labels.instance }} 上不可用"
+          
+      - alert: HighNetworkTraffic
+        expr: rate(node_network_receive_bytes_total[2m]) > 100000000  # 100MB/s
+        for: 2m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: "网络流量过高"
+          description: "主机 {{ $labels.instance }} 接收流量超过100MB/s，当前值：{{ $value | humanize }}B/s"
+
+  - name: redis.rules
+    rules:
+      # Redis监控告警
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: "Redis实例不可用"
+          description: "Redis实例 {{ $labels.instance }} 不可用"
+          
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 90
+        for: 2m
+        labels:
+          severity: warning
+          category: resource
+        annotations:
+          summary: "Redis内存使用率过高"
+          description: "Redis实例 {{ $labels.instance }} 内存使用率超过90%，当前值：{{ $value }}%"
+          
+      - alert: RedisConnectionsHigh
+        expr: redis_connected_clients / redis_config_maxclients * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+          category: resource
+        annotations:
+          summary: "Redis连接数过高"
+          description: "Redis实例 {{ $labels.instance }} 连接数超过80%，当前值：{{ $value }}%"
+
+  - name: business.rules
+    rules:
+      # 业务指标告警
+      - alert: LowActiveUsers
+        expr: active_users_total < 10
+        for: 10m
+        labels:
+          severity: info
+          category: business
+        annotations:
+          summary: "活跃用户数较低"
+          description: "活跃用户数低于10，当前值：{{ $value }}"
+          
+      - alert: HighPageLoadTime
+        expr: histogram_quantile(0.95, rate(page_load_duration_seconds_bucket[5m])) > 3
+        for: 3m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "页面加载时间过长"
+          description: "95%页面加载时间超过3秒，当前值：{{ $value }}s"

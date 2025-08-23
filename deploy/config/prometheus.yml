@@ -1,0 +1,69 @@
+# =================================
+# 在线时间工具 - Prometheus 监控配置
+# =================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'online-time-prod'
+    environment: 'production'
+
+rule_files:
+  - "alerts.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - 'alertmanager:9093'
+
+scrape_configs:
+  # Prometheus 自身监控
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    
+  # HAProxy 统计
+  - job_name: 'haproxy'
+    static_configs:
+      - targets: ['haproxy:8404']
+    metrics_path: '/stats;csv'
+    scrape_interval: 30s
+    
+  # Nginx 监控
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:80']
+    metrics_path: '/nginx_status'
+    scrape_interval: 30s
+    
+  # 应用服务监控
+  - job_name: 'online-time-app'
+    static_configs:
+      - targets: 
+        - 'app-1:3000'
+        - 'app-2:3000'
+        - 'app-3:3000'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    
+  # Redis 监控
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-master:6379', 'redis-slave:6379']
+    scrape_interval: 30s
+    
+  # Node Exporter (如果部署了)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+    
+  # Docker 监控
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s

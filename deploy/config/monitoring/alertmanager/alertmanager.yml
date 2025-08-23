@@ -1,0 +1,149 @@
+# =================================
+# 在线时间工具 - AlertManager 配置
+# =================================
+
+global:
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@yourcompany.com'
+  smtp_auth_username: 'alerts@yourcompany.com'
+  smtp_auth_password: 'your-app-password'
+
+# 路由规则
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+  routes:
+    # 关键告警立即发送
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      repeat_interval: 5m
+    
+    # 警告级别告警
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      repeat_interval: 30m
+    
+    # 信息级别告警
+    - match:
+        severity: info
+      receiver: 'info-alerts'
+      group_wait: 1m
+      repeat_interval: 2h
+
+# 接收器配置
+receivers:
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://localhost:5001/alerts'
+        send_resolved: true
+        http_config:
+          basic_auth:
+            username: 'admin'
+            password: 'webhook-password'
+        title: '在线时间工具告警'
+        text: |
+          {{ range .Alerts }}
+          告警名称: {{ .Annotations.summary }}
+          告警描述: {{ .Annotations.description }}
+          告警级别: {{ .Labels.severity }}
+          实例: {{ .Labels.instance }}
+          开始时间: {{ .StartsAt }}
+          {{ end }}
+
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'ops-team@yourcompany.com'
+        subject: '[CRITICAL] {{ .GroupLabels.alertname }} - 在线时间工具'
+        body: |
+          <h2>🚨 关键告警</h2>
+          <p>集群: {{ .GroupLabels.cluster }}</p>
+          <p>服务: {{ .GroupLabels.service }}</p>
+          
+          {{ range .Alerts }}
+          <div style="border: 1px solid #ff0000; padding: 10px; margin: 10px;">
+            <h3>{{ .Annotations.summary }}</h3>
+            <p><strong>描述:</strong> {{ .Annotations.description }}</p>
+            <p><strong>级别:</strong> {{ .Labels.severity }}</p>
+            <p><strong>实例:</strong> {{ .Labels.instance }}</p>
+            <p><strong>开始时间:</strong> {{ .StartsAt }}</p>
+            {{ if .Annotations.runbook_url }}
+            <p><strong>处理手册:</strong> <a href="{{ .Annotations.runbook_url }}">{{ .Annotations.runbook_url }}</a></p>
+            {{ end }}
+          </div>
+          {{ end }}
+        headers:
+          Subject: '[CRITICAL] 在线时间工具告警'
+    
+    webhook_configs:
+      - url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        send_resolved: true
+        title: ':rotating_light: 关键告警 - 在线时间工具'
+        text: |
+          {{ range .Alerts }}
+          *告警:* {{ .Annotations.summary }}
+          *描述:* {{ .Annotations.description }}
+          *级别:* {{ .Labels.severity }}
+          *实例:* {{ .Labels.instance }}
+          *时间:* {{ .StartsAt }}
+          {{ end }}
+
+  - name: 'warning-alerts'
+    email_configs:
+      - to: 'dev-team@yourcompany.com'
+        subject: '[WARNING] {{ .GroupLabels.alertname }} - 在线时间工具'
+        body: |
+          <h2>⚠️ 警告告警</h2>
+          <p>集群: {{ .GroupLabels.cluster }}</p>
+          <p>服务: {{ .GroupLabels.service }}</p>
+          
+          {{ range .Alerts }}
+          <div style="border: 1px solid #ffa500; padding: 10px; margin: 10px;">
+            <h3>{{ .Annotations.summary }}</h3>
+            <p><strong>描述:</strong> {{ .Annotations.description }}</p>
+            <p><strong>级别:</strong> {{ .Labels.severity }}</p>
+            <p><strong>实例:</strong> {{ .Labels.instance }}</p>
+            <p><strong>开始时间:</strong> {{ .StartsAt }}</p>
+          </div>
+          {{ end }}
+
+  - name: 'info-alerts'
+    webhook_configs:
+      - url: 'http://localhost:5001/alerts/info'
+        send_resolved: true
+        title: 'ℹ️ 信息告警 - 在线时间工具'
+        text: |
+          {{ range .Alerts }}
+          告警: {{ .Annotations.summary }}
+          描述: {{ .Annotations.description }}
+          级别: {{ .Labels.severity }}
+          实例: {{ .Labels.instance }}
+          时间: {{ .StartsAt }}
+          {{ end }}
+
+# 抑制规则
+inhibit_rules:
+  # 如果实例宕机，抑制其他所有告警
+  - source_match:
+      severity: 'critical'
+      alertname: 'AppDown'
+    target_match:
+      severity: 'warning'
+    equal: ['instance']
+  
+  # 如果节点宕机，抑制该节点的所有告警
+  - source_match:
+      alertname: 'NodeDown'
+    target_match_re:
+      alertname: 'High.*Usage'
+    equal: ['instance']
+
+# 静音配置模板
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'

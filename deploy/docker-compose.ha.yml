@@ -1,0 +1,280 @@
+version: '3.8'
+
+services:
+  # 应用服务 - 多实例
+  app-1:
+    extends:
+      file: docker-compose.prod.yml
+      service: app
+    container_name: online-time-app-1
+    hostname: app-1
+
+  app-2:
+    extends:
+      file: docker-compose.prod.yml
+      service: app
+    container_name: online-time-app-2
+    hostname: app-2
+
+  app-3:
+    extends:
+      file: docker-compose.prod.yml
+      service: app
+    container_name: online-time-app-3
+    hostname: app-3
+
+  # HAProxy 负载均衡
+  haproxy:
+    image: haproxy:2.8-alpine
+    container_name: online-time-haproxy
+    restart: unless-stopped
+    ports:
+      - "${HAPROXY_STATS_PORT:-8404}:8404"
+    volumes:
+      - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - app-1
+      - app-2
+      - app-3
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8404/stats"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Nginx (作为前端代理，连接到HAProxy)
+  nginx:
+    extends:
+      file: docker-compose.prod.yml
+      service: nginx
+    depends_on:
+      - haproxy
+    volumes:
+      - ./config/nginx-ha.conf:/etc/nginx/nginx.conf:ro
+      - ./logs:/var/log/nginx
+
+  # Redis 集群
+  redis-master:
+    extends:
+      file: docker-compose.prod.yml
+      service: redis
+    container_name: online-time-redis-master
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  redis-slave:
+    extends:
+      file: docker-compose.prod.yml
+      service: redis
+    container_name: online-time-redis-slave
+    command: redis-server --appendonly yes --slaveof redis-master 6379 --maxmemory 256mb --maxmemory-policy allkeys-lru
+    depends_on:
+      - redis-master
+
+  # ==================== 监控服务 ====================
+  # Prometheus - 指标收集
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: online-time-prometheus
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/monitoring/prometheus/alerts.yml:/etc/prometheus/rules/alerts.yml:ro
+      - ./data/prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # AlertManager - 告警管理
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: online-time-alertmanager
+    restart: unless-stopped
+    ports:
+      - "${ALERTMANAGER_PORT:-9093}:9093"
+    volumes:
+      - ./config/monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./data/alertmanager:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana - 可视化仪表板
+  grafana:
+    image: grafana/grafana:latest
+    container_name: online-time-grafana
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Node Exporter - 主机监控
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: online-time-node-exporter
+    restart: unless-stopped
+    ports:
+      - "${NODE_EXPORTER_PORT:-9100}:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /etc/hostname:/etc/nodename:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--collector.textfile.directory=/etc/node-exporter/'
+    networks:
+      - app-network
+
+  # cAdvisor - 容器监控
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: online-time-cadvisor
+    restart: unless-stopped
+    ports:
+      - "${CADVISOR_PORT:-8080}:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    networks:
+      - app-network
+
+  # Redis Exporter - Redis监控
+  redis-exporter-master:
+    image: oliver006/redis_exporter:latest
+    container_name: online-time-redis-exporter-master
+    restart: unless-stopped
+    ports:
+      - "${REDIS_EXPORTER_MASTER_PORT:-9121}:9121"
+    environment:
+      - REDIS_ADDR=redis://redis-master:6379
+      - REDIS_EXPORTER_LOG_FORMAT=json
+    depends_on:
+      - redis-master
+    networks:
+      - app-network
+
+  redis-exporter-slave:
+    image: oliver006/redis_exporter:latest
+    container_name: online-time-redis-exporter-slave
+    restart: unless-stopped
+    ports:
+      - "${REDIS_EXPORTER_SLAVE_PORT:-9122}:9121"
+    environment:
+      - REDIS_ADDR=redis://redis-slave:6379
+      - REDIS_EXPORTER_LOG_FORMAT=json
+    depends_on:
+      - redis-slave
+    networks:
+      - app-network
+
+  # Nginx Exporter - Nginx监控
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    container_name: online-time-nginx-exporter
+    restart: unless-stopped
+    ports:
+      - "${NGINX_EXPORTER_PORT:-9113}:9113"
+    command:
+      - '-nginx.scrape-uri=http://nginx:80/nginx_status'
+    depends_on:
+      - nginx
+    networks:
+      - app-network
+
+  # ==================== 日志收集服务 ====================
+  # Loki - 日志聚合
+  loki:
+    image: grafana/loki:latest
+    container_name: online-time-loki
+    restart: unless-stopped
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    volumes:
+      - ./config/monitoring/loki/loki.yml:/etc/loki/local-config.yaml:ro
+      - ./data/loki:/loki
+    command:
+      - '-config.file=/etc/loki/local-config.yaml'
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Promtail - 日志收集器
+  promtail:
+    image: grafana/promtail:latest
+    container_name: online-time-promtail
+    restart: unless-stopped
+    volumes:
+      - ./config/monitoring/loki/promtail.yml:/etc/promtail/config.yml:ro
+      - ./logs:/var/log/app:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+      - '-config.file=/etc/promtail/config.yml'
+    depends_on:
+      - loki
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
