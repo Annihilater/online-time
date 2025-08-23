@@ -79,7 +79,7 @@ get_module_for_file() {
         echo "frontend-utils"
     elif echo "$file" | grep -qE "src/.*test.*\.(tsx?|test\.tsx?|spec\.tsx?)$"; then
         echo "frontend-tests"
-    elif echo "$file" | grep -qE "(.*config.*\.(json|js|ts)$|package\.json|tsconfig\.json|vite\.config\..*|tailwind\.config\..*|eslint\.config\..*|vitest\.config\..*)"; then
+    elif echo "$file" | grep -qE "(.*config.*\.(json|js|ts)$|package\.json|tsconfig\.json|vite\.config\..*|tailwind\.config\..*|eslint\.config\..*|vitest\.config\..*|justfile)"; then
         echo "config"
     elif echo "$file" | grep -qE "(docker/.*|Dockerfile.*|\.dockerignore|docker-compose\..*\.ya?ml)"; then
         echo "docker"
