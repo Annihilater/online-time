@@ -30,7 +30,7 @@
 # 安装依赖
 npm install
 
-# 启动开发服务器 (http://localhost:3000)
+# 启动开发服务器 (http://localhost:3001)
 npm run dev
 
 # 构建生产版本
@@ -51,7 +51,7 @@ npm run preview
 ### 核心开发命令
 
 ```bash
-npm run dev          # 启动开发服务器，端口3000，自动打开浏览器
+npm run dev          # 启动开发服务器，端口3001，自动打开浏览器
 npm run build        # TypeScript编译 + Vite构建，输出到dist/
 npm run preview      # 预览构建结果，验证生产版本
 ```
@@ -693,7 +693,7 @@ npm run lint       # 代码检查
 
 ### 项目信息
 
-- **端口**: 3000 (开发)
+- **端口**: 3001 (开发)
 - **构建目录**: dist/
 - **测试框架**: Vitest
 - **样式方案**: Tailwind + DaisyUI
