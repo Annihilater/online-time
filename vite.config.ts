@@ -72,11 +72,6 @@ export default defineConfig({
   },
   // CSS优化
   css: {
-    devSourcemap: true,
-    postcss: {
-      plugins: [
-        // CSS优化插件会在postcss.config.js中配置
-      ]
-    }
+    devSourcemap: true
   }
 })
