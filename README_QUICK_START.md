@@ -3,6 +3,7 @@
 ## 🚀 方法1：简单HTML版本（推荐）
 
 直接双击打开文件：
+
 ```
 /Users/ziji/github/online-time/start.html
 ```
@@ -11,9 +12,10 @@
 
 ## 🛠 方法2：React开发版本
 
-如果想运行完整的React版本，需要：
+如果想运行完整的React版本，参考 **[完整开发文档](./CLAUDE.md)** 获取详细配置信息。
 
 ### 1. 确保Node.js版本
+
 ```bash
 node --version  # 需要 >= 20.19
 ```
@@ -21,6 +23,7 @@ node --version  # 需要 >= 20.19
 如果版本过低，请升级Node.js
 
 ### 2. 安装依赖并启动
+
 ```bash
 cd /Users/ziji/github/online-time
 npm install
@@ -30,12 +33,14 @@ npm run build && npm run preview  # 生产预览
 ```
 
 ### 3. 访问地址
-- 开发模式：http://localhost:5173
-- 预览模式：http://localhost:4173
+
+- 开发模式：<http://localhost:5173>
+- 预览模式：<http://localhost:4173>
 
 ## ✨ 功能特点
 
 ### HTML版本
+
 - ✅ 实时数字时钟显示
 - ✅ 闹钟时间设置
 - ✅ 8个快捷时间按钮
@@ -45,6 +50,7 @@ npm run build && npm run preview  # 生产预览
 - ✅ 无需安装，直接使用
 
 ### React版本（完整功能）
+
 - ✅ 所有HTML版本功能
 - ✅ 11种音效选择
 - ✅ 数据持久化
@@ -69,5 +75,11 @@ npm run build && npm run preview  # 生产预览
 - HTML版本使用Web Audio API生成声音，无需外部文件
 
 ---
+
+## 📚 更多资源
+
+- **[项目总览](./README.md)** - 完整功能介绍和技术架构
+- **[开发文档](./CLAUDE.md)** - 详细开发配置和最佳实践
+- **[部署指南](./DEPLOYMENT_GUIDE.md)** - 生产环境部署说明
 
 **推荐使用HTML版本**，简单快捷，功能完整！

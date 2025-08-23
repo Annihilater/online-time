@@ -373,7 +373,9 @@ npm run preview
 ## 📞 技术支持
 
 如遇到部署问题，请参考：
-- [Vite 构建指南](https://vitejs.dev/guide/build.html)
-- [React Router 部署](https://reactrouter.com/en/main/guides/deploying)
+- **[项目配置文档](./CLAUDE.md)** - 完整开发环境配置
+- **[快速启动指南](./README_QUICK_START.md)** - 本地运行说明
+- [Vite 构建指南](https://vitejs.dev/guide/build.html) - 官方文档
+- [React Router 部署](https://reactrouter.com/en/main/guides/deploying) - 路由部署
 
 部署完成后，访问网站验证所有功能正常运行。
