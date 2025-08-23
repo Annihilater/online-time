@@ -1,5 +1,10 @@
 name: Docker Build and Deploy
 
+# 设置权限以允许写入packages
+permissions:
+  contents: read
+  packages: write
+
 on:
   push:
     branches:
@@ -18,7 +23,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/online-time
+  IMAGE_NAME: online-time
 
 jobs:
   # 构建和测试阶段 - 所有分支都执行
@@ -42,17 +47,12 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.IMAGE_NAME }}
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
-          # dev分支: dev-{sha}
-          type=ref,event=branch,prefix=dev-,suffix=-{{sha}},enable={{is_default_branch}}
-          type=ref,event=branch,prefix={{branch}}-,suffix=-{{sha}},enable=${{ github.ref_name == 'dev' }}
+          # 所有分支: {branch}-{sha}
+          type=ref,event=branch,prefix={{branch}}-,suffix=-{{sha}}
           
-          # test分支: test-{sha}
-          type=ref,event=branch,prefix={{branch}}-,suffix=-{{sha}},enable=${{ github.ref_name == 'test' }}
-          
-          # release分支: latest + release-{sha}
-          type=ref,event=branch,prefix={{branch}}-,suffix=-{{sha}},enable=${{ github.ref_name == 'release' }}
+          # release分支额外添加latest标签
           type=raw,value=latest,enable=${{ github.ref_name == 'release' }}
           
           # tags: v1.0.0 -> 1.0.0 + latest
@@ -88,7 +88,7 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-        outputs: type=image,name=${{ env.IMAGE_NAME }},push=false
+        outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push=false
 
   # 多架构镜像推送 - 所有push事件都发布  
   push:
@@ -107,7 +107,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.IMAGE_NAME }}
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
           # 所有分支: {branch}-{sha}
           type=ref,event=branch,prefix={{branch}}-,suffix=-{{sha}}
@@ -182,7 +182,7 @@ jobs:
         echo "🎯 Deploying to Production Environment"
         echo "Branch: ${{ github.ref_name }}"
         echo "Commit: ${{ github.sha }}"
-        echo "Available at: docker pull ${{ env.IMAGE_NAME }}:latest"
+        echo "Available at: docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
 
   # 安全扫描 - 所有发布的镜像都扫描
   security-scan:
@@ -194,7 +194,7 @@ jobs:
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: '${{ env.IMAGE_NAME }}:latest'
+        image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest'
         format: 'sarif'
         output: 'trivy-results.sarif'
 
@@ -224,8 +224,8 @@ jobs:
         git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD~1)..HEAD >> CHANGELOG.md
         echo "" >> CHANGELOG.md
         echo "## Docker Image" >> CHANGELOG.md
-        echo "- \`docker pull ${{ env.IMAGE_NAME }}:${{ github.ref_name }}\`" >> CHANGELOG.md
-        echo "- \`docker pull ${{ env.IMAGE_NAME }}:latest\`" >> CHANGELOG.md
+        echo "- \`docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}\`" >> CHANGELOG.md
+        echo "- \`docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest\`" >> CHANGELOG.md
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
@@ -253,5 +253,5 @@ jobs:
         fi
         
         if [ "${{ needs.push.result }}" == "success" ]; then
-          echo "🐳 Docker image published to GitHub Container Registry: ${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ github.sha }}"
+          echo "🐳 Docker image published to GitHub Container Registry: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ github.sha }}"
         fi
