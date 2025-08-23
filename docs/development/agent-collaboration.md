@@ -22,16 +22,16 @@
 
 ```bash
 # 开发前环境检查
-make status             # 项目状态确认
-make test:run          # 确保现有测试通过
+npm run lint           # 代码规范检查
+npm run test:run       # 确保现有测试通过
 
 # 开发过程
-make dev               # 启动开发环境
+npm run dev            # 启动开发环境
 # 实时开发和测试
 
 # 完成后验证
-make test              # 运行相关测试
-make build             # 验证构建成功
+npm run test           # 运行相关测试
+npm run build          # 验证构建成功
 ```
 
 **代码审查标准**:
@@ -142,10 +142,9 @@ describe('ComponentName', () => {
 
 ```bash
 # 构建分析
-make perf              # 构建大小分析
-npm run build -- --analyze # Bundle分析 (如果配置)
+npm run build          # 构建并检查大小（超过500KB会警告）
 
-# 性能指标
+# 性能指标目标
 - First Contentful Paint < 1.5s
 - Largest Contentful Paint < 2.5s  
 - Cumulative Layout Shift < 0.1
@@ -195,8 +194,8 @@ graph TD
 4. 确保TypeScript类型安全
 
 # 实时协作检查
-make dev               # 开发环境验证
-make lint              # 代码规范检查
+npm run dev            # 开发环境验证
+npm run lint           # 代码规范检查
 ```
 
 **阶段3: 测试编写**
@@ -208,8 +207,8 @@ make lint              # 代码规范检查
 3. 集成测试验证
 4. 测试覆盖率检查
 
-make test              # 交互式测试
-make test:coverage     # 覆盖率报告
+npm run test           # 交互式测试
+npm run test:coverage  # 覆盖率报告
 ```
 
 **阶段4: 性能优化**
@@ -221,8 +220,7 @@ make test:coverage     # 覆盖率报告
 3. 资源加载优化
 4. 性能指标验证
 
-make perf              # 性能检查
-make build             # 构建验证
+npm run build          # 构建验证和性能检查
 ```
 
 ### 2. 问题修复流程
@@ -240,8 +238,8 @@ make build             # 构建验证
    - Performance: 性能影响评估
 
 3. 验证和部署
-   make fix              # 快速修复
-   make ci-check         # 完整验证
+   npm run lint -- --fix # 快速修复
+   npm run test && npm run build # 完整验证
 ```
 
 ### 3. 代码审查标准
@@ -347,20 +345,20 @@ describe('TimerComponent', () => {
 
 ```bash
 # 所有Agent都必须通过的检查
-make lint              # 代码规范检查
-make test:run          # 所有测试通过
-make build             # 构建成功验证
+npm run lint           # 代码规范检查
+npm run test:run       # 所有测试通过
+npm run build          # 构建成功验证
 ```
 
 ### 2. 集成检查 (CI Pipeline)
 
 ```bash
-# 自动化质量门控
-make ci-check          # 完整CI流程
-- 依赖安装 ✓
-- 代码检查 ✓  
-- 测试运行 ✓
-- 构建验证 ✓
+# 自动化质量门控（可使用Claude Code命令）
+/check                 # 快速检查：lint + test
+/quality-check         # 全面检查：lint + test + build
+
+# 或手动执行
+npm run lint && npm run test:run && npm run build
 ```
 
 ### 3. 性能基准

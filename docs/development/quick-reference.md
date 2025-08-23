@@ -6,26 +6,25 @@
 # 克隆并设置项目
 git clone <project-url>
 cd online-time
-make setup              # 一键设置开发环境
-make dev                # 启动开发服务器 (http://localhost:3000)
+npm ci                  # 安装项目依赖
+npm run dev             # 启动开发服务器 (http://localhost:3001)
 ```
 
 ## 核心命令速查
 
 ### 开发常用
 ```bash
-make dev                # 🚀 启动开发环境
-make build              # 🔨 构建生产版本
-make test               # 🧪 运行测试
-make lint               # 🔍 代码检查
+npm run dev             # 🚀 启动开发环境
+npm run build           # 🔨 构建生产版本
+npm run test            # 🧪 运行测试
+npm run lint            # 🔍 代码检查
 ```
 
 ### 问题排查
 ```bash
-make status             # 📊 项目状态检查
-make clean              # 🧹 清理缓存
-make fix                # 🔧 快速修复
-make reset              # 🔄 完全重置
+/status                 # 📊 项目状态检查
+npm run lint -- --fix   # 🔧 自动修复代码问题
+rm -rf node_modules/.vite && npm ci  # 🔄 完全重置
 ```
 
 ## 项目结构速览
@@ -179,18 +178,18 @@ describe('useCustomHook', () => {
 
 ## Git工作流程
 
-### 标准提交流程
+### Claude Code智能提交流程
 ```bash
-# 1. 检查状态
-git status
-make lint               # 代码检查
-make test:run          # 运行测试
+# 一键智能提交（推荐）
+/commit                 # 自动按模块分批提交
 
-# 2. 提交代码
+# 传统手动流程（备用）
+git status
+npm run lint            # 代码检查
+npm run test:run        # 运行测试
+npm run build           # 验证构建
 git add .
 git commit -m "feat: 添加新功能"
-
-# 3. 推送代码
 git push origin master
 ```
 
@@ -225,14 +224,14 @@ chore: 构建过程或辅助工具变动
 
 #### 构建失败
 ```bash
-make clean              # 清理缓存
-npm ci                  # 重新安装依赖
-make build              # 重新构建
+rm -rf node_modules/.vite # 清理缓存
+npm ci                    # 重新安装依赖
+npm run build             # 重新构建
 ```
 
 #### 测试失败
 ```bash
-make test:run           # 运行所有测试
+npm run test:run        # 运行所有测试
 npm run test:coverage   # 查看覆盖率
 ```
 
@@ -250,8 +249,8 @@ npx tsc --noEmit        # 只检查类型，不生成文件
 ## 部署检查清单
 
 ### 部署前验证
-- [ ] `make ci-check` 通过
-- [ ] 构建大小合理 (`make perf`)
+- [ ] `npm run lint && npm run test:run && npm run build` 通过
+- [ ] 构建大小合理（npm run build会检查）
 - [ ] 所有测试通过
 - [ ] 代码规范检查通过
 - [ ] 功能手动验证
@@ -294,9 +293,15 @@ rsync -av dist/ user@server:/var/www/html/
 ## 获取帮助
 
 ```bash
-make help               # 查看所有可用命令
-make status             # 检查项目状态
-make deps               # 检查依赖状态
+# 使用Claude Code命令
+/status                 # 检查项目状态
+/check                  # 快速检查（lint + test）
+/quality-check          # 全面检查（lint + test + build）
+
+# 或手动命令
+npm run lint            # 代码检查
+npm run test:run        # 运行测试
+npm run build           # 构建验证
 ```
 
-**记住**: 当遇到问题时，首先尝试 `make fix` - 它能解决大部分常见问题！
+**记住**: 当遇到问题时，首先尝试 `npm run lint -- --fix` 和重新安装依赖！

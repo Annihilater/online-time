@@ -1,136 +1,90 @@
 # Docker 部署指南
 
-在线闹钟项目的Docker化部署指南，支持快速部署、扩展和监控。
+在线闹钟项目的简化Docker部署指南。项目已简化为静态前端应用，Docker配置已经过优化。
 
 ## 快速开始
 
-### 方法1：使用自动化部署脚本（推荐）
+### 使用npm构建 + Docker部署（推荐）
 
 ```bash
-# 一键部署
-./deploy.sh
+# 构建生产版本
+npm run build
 
-# 自定义端口部署
-./deploy.sh -p 8080
-
-# 使用Docker Compose部署
-./deploy.sh -c
-
-# 启用监控服务部署
-./deploy.sh -c --profile monitoring
-```
-
-### 方法2：使用Makefile命令
-
-```bash
-# 一键Docker部署
-make docker-deploy
-
-# 使用Docker Compose
-make compose-up
-
-# 启用监控的生产部署
-make compose-prod
-```
-
-### 方法3：手动Docker命令
-
-```bash
-# 构建镜像
+# 构建Docker镜像
 docker build -t online-time:latest .
 
 # 运行容器
 docker run -d --name online-time-app -p 80:80 online-time:latest
 ```
 
+### 使用Docker一键构建
+
+```bash
+# 直接从源码构建并运行
+docker build -t online-time:latest . && docker run -d --name online-time-app -p 80:80 online-time:latest
+```
+
 ## 部署配置文件说明
 
 ### 1. Dockerfile
-- **多阶段构建**：优化镜像大小，减少安全风险
-- **基础镜像**：Node.js 18 Alpine（构建） + Nginx Alpine（运行）
+项目使用简化的多阶段构建：
+- **构建阶段**：Node.js 18 Alpine，运行npm install和npm run build
+- **运行阶段**：Nginx Alpine，只包含构建后的静态文件
 - **非root用户**：提高安全性
-- **健康检查**：自动监控应用状态
-
-### 2. docker-compose.yml
-- **服务编排**：应用服务 + 可选的负载均衡和监控
-- **健康检查**：内置健康监控
-- **日志管理**：自动日志轮转
-- **网络隔离**：独立的Docker网络
-
-### 3. nginx.conf
-- **性能优化**：Gzip压缩、缓存策略
-- **安全头**：XSS防护、CSRF防护
-- **SPA支持**：React Router友好配置
-
-### 4. deploy.sh
-- **自动化部署**：支持多种部署模式
-- **健康检查**：部署后自动验证
-- **错误处理**：完善的错误处理和回滚
+- **健康检查**：HTTP健康检查端点
 
 ## 部署模式
 
-### 单容器模式（默认）
-适合小型项目和开发环境：
+### 单容器模式（推荐）
+静态前端应用的最佳部署方式：
 
 ```bash
-./deploy.sh -s
-# 或
-make docker-deploy
+# 构建并运行
+docker build -t online-time:latest .
+docker run -d --name online-time-app -p 80:80 online-time:latest
 ```
 
-### Docker Compose模式
-适合生产环境和需要扩展的场景：
+### 多端口部署
+同时在多个端口提供服务：
 
 ```bash
-./deploy.sh -c
-# 或
-make compose-up
-```
+# 在8080端口运行
+docker run -d --name online-time-8080 -p 8080:80 online-time:latest
 
-### 负载均衡模式
-支持多实例负载均衡：
-
-```bash
-./deploy.sh -c --profile lb
-```
-
-### 监控模式
-包含Prometheus监控：
-
-```bash
-./deploy.sh -c --profile monitoring
-# 或
-make compose-prod
+# 在3000端口运行
+docker run -d --name online-time-3000 -p 3000:80 online-time:latest
 ```
 
 ## 环境变量配置
 
+由于是静态前端应用，环境变量在构建时确定：
+
 | 变量名 | 默认值 | 说明 |
 |--------|--------|------|
-| `NODE_ENV` | `production` | 运行环境 |
-| `PORT` | `80` | 应用端口 |
-| `NGINX_WORKER_PROCESSES` | `auto` | Nginx工作进程数 |
+| `NODE_ENV` | `production` | 构建环境 |
+| `PORT` | `80` | Nginx端口 |
+| `VITE_APP_TITLE` | `Online Time` | 应用标题 |
 
 ## 健康检查
 
-应用提供多个健康检查端点：
+简化的健康检查机制：
 
-- **HTTP健康检查**：`http://localhost/health`
+- **HTTP检查**：访问 `http://localhost/` 返回200表示正常
 - **Docker健康检查**：自动每30秒检查一次
-- **手动检查**：`make docker-health`
+- **手动检查**：`curl -f http://localhost/ || exit 1`
 
 ## 日志管理
 
 ### 查看日志
 ```bash
-# 查看应用日志
+# 查看容器日志
 docker logs -f online-time-app
 
-# 使用Makefile
-make docker-logs
+# 查看Nginx访问日志
+docker exec online-time-app tail -f /var/log/nginx/access.log
 
-# Docker Compose日志
-docker-compose logs -f
+# 查看Nginx错误日志
+docker exec online-time-app tail -f /var/log/nginx/error.log
 ```
 
 ### 日志配置
@@ -150,17 +104,13 @@ docker-compose logs -f
 - **静态资源缓存**：1年缓存期
 - **连接优化**：Keep-alive和连接池
 
-## 监控和告警
+## 监控
 
-### Prometheus监控（可选）
-启用监控服务后可以访问：
-- **Prometheus**：http://localhost:9090
-- **健康指标**：自动收集应用健康状态
-
-### 监控指标
-- **应用可用性**：健康检查状态
-- **响应时间**：请求处理时间
-- **错误率**：4xx/5xx错误统计
+### 基础监控
+静态前端应用的监控相对简单：
+- **可用性检查**：HTTP状态码监控
+- **访问日志**：Nginx访问日志分析
+- **容器状态**：Docker容器健康状态
 
 ## 故障排除
 
@@ -187,10 +137,10 @@ docker ps
 **3. 健康检查失败**
 ```bash
 # 检查应用状态
-make docker-health
+curl -f http://localhost/ || echo "Service down"
 
 # 查看详细日志
-make docker-logs
+docker logs online-time-app --tail 50
 ```
 
 **4. 构建失败**
@@ -199,8 +149,8 @@ make docker-logs
 docker system prune -f
 
 # 重新构建
-make docker-clean
-make docker-build
+docker rmi online-time:latest
+docker build -t online-time:latest .
 ```
 
 ### 调试命令
@@ -212,9 +162,11 @@ docker exec -it online-time-app sh
 # 检查容器资源使用
 docker stats online-time-app
 
-# 检查网络连接
-docker network ls
-docker network inspect online-time-network
+# 检查Nginx配置
+docker exec online-time-app nginx -t
+
+# 检查静态文件
+docker exec online-time-app ls -la /usr/share/nginx/html/
 ```
 
 ## 生产部署建议
@@ -240,14 +192,14 @@ docker network inspect online-time-network
 
 ```bash
 # 停止并删除容器
-make docker-stop
+docker stop online-time-app
+docker rm online-time-app
 
-# 完全清理
-make docker-clean
+# 删除镜像
+docker rmi online-time:latest
 
-# Docker Compose清理
-make compose-down
-docker-compose down --volumes --remove-orphans
+# 清理未使用的资源
+docker system prune -f
 ```
 
 ## 技术支持
