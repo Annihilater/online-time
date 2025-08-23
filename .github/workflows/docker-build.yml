@@ -1,0 +1,255 @@
+name: Docker Build and Deploy
+
+on:
+  push:
+    branches:
+      - dev
+      - test
+      - release
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - dev
+      - test
+      - release
+      - master
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: klause/online-time
+
+jobs:
+  # 构建和测试阶段 - 所有分支都执行
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-metadata: ${{ steps.meta.outputs.json }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.IMAGE_NAME }}
+        tags: |
+          # dev分支: dev-{sha}
+          type=ref,event=branch,prefix=dev-,suffix=-{{sha}},enable={{is_default_branch}}
+          type=ref,event=branch,prefix={{branch}}-,suffix=-{{sha}},enable=${{ github.ref_name == 'dev' }}
+          
+          # test分支: test-{sha}
+          type=ref,event=branch,prefix={{branch}}-,suffix=-{{sha}},enable=${{ github.ref_name == 'test' }}
+          
+          # release分支: latest + release-{sha}
+          type=ref,event=branch,prefix={{branch}}-,suffix=-{{sha}},enable=${{ github.ref_name == 'release' }}
+          type=raw,value=latest,enable=${{ github.ref_name == 'release' }}
+          
+          # tags: v1.0.0 -> 1.0.0 + latest
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+          
+          # PR: pr-{number}
+          type=ref,event=pr,prefix=pr-
+        labels: |
+          org.opencontainers.image.title=Online Time Tools
+          org.opencontainers.image.description=免费的在线时间管理工具集
+          org.opencontainers.image.vendor=Claude Code
+          org.opencontainers.image.licenses=MIT
+
+    - name: Log in to Docker Hub (只在release分支或tag时执行)
+      if: github.ref_name == 'release' || startsWith(github.ref, 'refs/tags/v')
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: docker/base/Dockerfile
+        platforms: ${{ matrix.platform }}
+        push: false  # 先不推送，等所有平台构建完成
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        outputs: type=image,name=${{ env.IMAGE_NAME }},push=false
+
+  # 多架构镜像推送 - 只在release分支或tag时执行  
+  push:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'release' || startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Extract metadata for push
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.IMAGE_NAME }}
+        tags: |
+          # release分支: latest + release-{sha}
+          type=ref,event=branch,prefix={{branch}}-,suffix=-{{sha}},enable=${{ github.ref_name == 'release' }}
+          type=raw,value=latest,enable=${{ github.ref_name == 'release' }}
+          
+          # tags: v1.0.0 -> 1.0.0 + latest
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push multi-platform image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: docker/base/Dockerfile
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # 部署到开发环境 - 只在dev分支
+  deploy-dev:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'dev'
+    environment: development
+    
+    steps:
+    - name: Deploy to Development Environment
+      run: |
+        echo "🚀 Deploying to Development Environment"
+        echo "Branch: ${{ github.ref_name }}"
+        echo "Commit: ${{ github.sha }}"
+        # 这里可以添加实际的部署脚本
+        # 例如：调用部署API、更新k8s配置等
+
+  # 部署到测试环境 - 只在test分支
+  deploy-test:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'test'
+    environment: testing
+    
+    steps:
+    - name: Deploy to Testing Environment
+      run: |
+        echo "🧪 Deploying to Testing Environment"
+        echo "Branch: ${{ github.ref_name }}"
+        echo "Commit: ${{ github.sha }}"
+
+  # 部署到生产环境 - 只在release分支或tag
+  deploy-prod:
+    needs: [build, push]
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'release' || startsWith(github.ref, 'refs/tags/v')
+    environment: production
+    
+    steps:
+    - name: Deploy to Production Environment
+      run: |
+        echo "🎯 Deploying to Production Environment"
+        echo "Branch: ${{ github.ref_name }}"
+        echo "Commit: ${{ github.sha }}"
+        echo "Available at: docker pull ${{ env.IMAGE_NAME }}:latest"
+
+  # 安全扫描 - 只在release分支或tag时执行
+  security-scan:
+    needs: push
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'release' || startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: '${{ env.IMAGE_NAME }}:latest'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  # 创建GitHub Release - 只在tag时执行
+  release:
+    needs: [push, security-scan]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # 生成简单的changelog
+        echo "## Changes" > CHANGELOG.md
+        git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD~1)..HEAD >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "## Docker Image" >> CHANGELOG.md
+        echo "- \`docker pull ${{ env.IMAGE_NAME }}:${{ github.ref_name }}\`" >> CHANGELOG.md
+        echo "- \`docker pull ${{ env.IMAGE_NAME }}:latest\`" >> CHANGELOG.md
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        body_path: CHANGELOG.md
+        draft: false
+        prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 通知 - 构建完成后通知
+  notify:
+    needs: [build, push, deploy-dev, deploy-test, deploy-prod]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Notify build status
+      run: |
+        if [ "${{ needs.build.result }}" == "success" ]; then
+          echo "✅ Build completed successfully"
+        else
+          echo "❌ Build failed"
+        fi
+        
+        if [ "${{ github.ref_name }}" == "release" ] && [ "${{ needs.push.result }}" == "success" ]; then
+          echo "🐳 Docker image published to Docker Hub"
+        fi
