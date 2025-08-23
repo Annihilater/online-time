@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 应用服务 - 多实例
   app-1:
@@ -39,7 +37,15 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8404/stats"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8404/stats",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -85,17 +91,25 @@ services:
       - ./config/monitoring/prometheus/alerts.yml:/etc/prometheus/rules/alerts.yml:ro
       - ./data/prometheus:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-      - '--web.enable-admin-api'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+      - "--web.enable-admin-api"
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9090/-/healthy",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -111,15 +125,23 @@ services:
       - ./config/monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - ./data/alertmanager:/alertmanager
     command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
-      - '--web.external-url=http://localhost:9093'
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+      - "--web.external-url=http://localhost:9093"
     depends_on:
       - prometheus
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9093/-/healthy",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -163,11 +185,11 @@ services:
       - /:/rootfs:ro
       - /etc/hostname:/etc/nodename:ro
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-      - '--collector.textfile.directory=/etc/node-exporter/'
+      - "--path.procfs=/host/proc"
+      - "--path.rootfs=/rootfs"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+      - "--collector.textfile.directory=/etc/node-exporter/"
     networks:
       - app-network
 
@@ -227,7 +249,7 @@ services:
     ports:
       - "${NGINX_EXPORTER_PORT:-9113}:9113"
     command:
-      - '-nginx.scrape-uri=http://nginx:80/nginx_status'
+      - "-nginx.scrape-uri=http://nginx:80/nginx_status"
     depends_on:
       - nginx
     networks:
@@ -245,11 +267,19 @@ services:
       - ./config/monitoring/loki/loki.yml:/etc/loki/local-config.yaml:ro
       - ./data/loki:/loki
     command:
-      - '-config.file=/etc/loki/local-config.yaml'
+      - "-config.file=/etc/loki/local-config.yaml"
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3100/ready",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -266,7 +296,7 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     command:
-      - '-config.file=/etc/promtail/config.yml'
+      - "-config.file=/etc/promtail/config.yml"
     depends_on:
       - loki
     networks:
@@ -275,6 +305,3 @@ services:
 networks:
   app-network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16

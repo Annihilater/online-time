@@ -133,11 +133,20 @@ graceful_stop() {
     
     log "开始优雅停止服务..."
     
-    # 检查运行中的服务
-    local result
-    result=$(check_running_services)
-    local ha_running=$(echo "$result" | grep "ha_running=" | cut -d'=' -f2)
-    local basic_running=$(echo "$result" | grep "basic_running=" | cut -d'=' -f2)
+    # 直接检查服务状态
+    local project_name="${COMPOSE_PROJECT_NAME:-online-time-prod}"
+    local ha_running=false
+    local basic_running=false
+    
+    # 检查高可用模式
+    if docker-compose -p "$project_name" -f "docker-compose.ha.yml" ps -q 2>/dev/null | grep -q .; then
+        ha_running=true
+    fi
+    
+    # 检查基础/完整模式
+    if docker-compose -p "$project_name" -f "docker-compose.prod.yml" ps -q 2>/dev/null | grep -q .; then
+        basic_running=true
+    fi
     
     # 停止高可用模式服务
     if [[ "$ha_running" == "true" ]]; then
