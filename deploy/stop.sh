@@ -66,6 +66,20 @@ check_docker() {
     fi
 }
 
+# 加载环境配置
+load_environment() {
+    local env_file="$SCRIPT_DIR/.env.prod"
+    if [[ -f "$env_file" ]]; then
+        log "加载环境配置: $env_file"
+        set -a  # automatically export all variables
+        source "$env_file"
+        set +a
+    else
+        warn "环境配置文件不存在，使用默认项目名"
+        export COMPOSE_PROJECT_NAME="online-time-prod"
+    fi
+}
+
 # 检查运行中的服务
 check_running_services() {
     log "检查运行中的服务..."
@@ -73,20 +87,29 @@ check_running_services() {
     local ha_running=false
     local basic_running=false
     local services_found=false
+    local project_name="${COMPOSE_PROJECT_NAME:-online-time-prod}"
     
-    # 检查高可用模式
-    if docker-compose -f "docker-compose.ha.yml" ps -q 2>/dev/null | grep -q .; then
-        echo -e "${YELLOW}发现高可用模式服务:${NC}"
-        docker-compose -f "docker-compose.ha.yml" ps
+    # 检查高可用模式（使用项目名）
+    if docker-compose -p "$project_name" -f "docker-compose.ha.yml" ps -q 2>/dev/null | grep -q .; then
+        echo -e "${YELLOW}发现高可用模式服务 (项目: $project_name):${NC}"
+        docker-compose -p "$project_name" -f "docker-compose.ha.yml" ps
         ha_running=true
         services_found=true
     fi
     
-    # 检查基础/完整模式
-    if docker-compose -f "docker-compose.prod.yml" ps -q 2>/dev/null | grep -q .; then
-        echo -e "${YELLOW}发现基础/完整模式服务:${NC}"
-        docker-compose -f "docker-compose.prod.yml" ps
+    # 检查基础/完整模式（使用项目名）
+    if docker-compose -p "$project_name" -f "docker-compose.prod.yml" ps -q 2>/dev/null | grep -q .; then
+        echo -e "${YELLOW}发现基础/完整模式服务 (项目: $project_name):${NC}"
+        docker-compose -p "$project_name" -f "docker-compose.prod.yml" ps
         basic_running=true
+        services_found=true
+    fi
+    
+    # 额外检查：查找任何包含项目名的容器
+    local related_containers=$(docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" --filter "name=$project_name" 2>/dev/null || true)
+    if [[ -n "$related_containers" ]]; then
+        echo -e "${YELLOW}发现相关容器:${NC}"
+        echo "$related_containers"
         services_found=true
     fi
     
@@ -102,6 +125,7 @@ check_running_services() {
 graceful_stop() {
     local verbose="$1"
     local compose_args=""
+    local project_name="${COMPOSE_PROJECT_NAME:-online-time-prod}"
     
     if [[ "$verbose" == "true" ]]; then
         compose_args="--verbose"
@@ -118,7 +142,7 @@ graceful_stop() {
     # 停止高可用模式服务
     if [[ "$ha_running" == "true" ]]; then
         log "停止高可用模式服务..."
-        if docker-compose -f "docker-compose.ha.yml" stop $compose_args; then
+        if docker-compose -p "$project_name" -f "docker-compose.ha.yml" stop $compose_args; then
             success "高可用模式服务已停止"
         else
             error "高可用模式服务停止失败"
@@ -128,7 +152,7 @@ graceful_stop() {
     # 停止基础/完整模式服务
     if [[ "$basic_running" == "true" ]]; then
         log "停止基础/完整模式服务..."
-        if docker-compose -f "docker-compose.prod.yml" stop $compose_args; then
+        if docker-compose -p "$project_name" -f "docker-compose.prod.yml" stop $compose_args; then
             success "基础/完整模式服务已停止"
         else
             error "基础/完整模式服务停止失败"
@@ -141,6 +165,7 @@ force_stop() {
     local verbose="$1"
     local remove_volumes="$2"
     local remove_images="$3"
+    local project_name="${COMPOSE_PROJECT_NAME:-online-time-prod}"
     
     local compose_args=""
     
@@ -159,9 +184,9 @@ force_stop() {
     log "开始强制停止服务..."
     
     # 强制停止高可用模式服务
-    if docker-compose -f "docker-compose.ha.yml" ps -q 2>/dev/null | grep -q .; then
+    if docker-compose -p "$project_name" -f "docker-compose.ha.yml" ps -q 2>/dev/null | grep -q .; then
         log "强制停止高可用模式服务..."
-        if docker-compose -f "docker-compose.ha.yml" down $compose_args; then
+        if docker-compose -p "$project_name" -f "docker-compose.ha.yml" down $compose_args; then
             success "高可用模式服务已强制停止"
         else
             warn "高可用模式服务强制停止时出现问题"
@@ -169,9 +194,9 @@ force_stop() {
     fi
     
     # 强制停止基础/完整模式服务
-    if docker-compose -f "docker-compose.prod.yml" ps -q 2>/dev/null | grep -q .; then
+    if docker-compose -p "$project_name" -f "docker-compose.prod.yml" ps -q 2>/dev/null | grep -q .; then
         log "强制停止基础/完整模式服务..."
-        if docker-compose -f "docker-compose.prod.yml" down $compose_args; then
+        if docker-compose -p "$project_name" -f "docker-compose.prod.yml" down $compose_args; then
             success "基础/完整模式服务已强制停止"
         else
             warn "基础/完整模式服务强制停止时出现问题"
@@ -208,21 +233,31 @@ cleanup_resources() {
 # 显示停止后状态
 show_final_status() {
     log "检查停止后状态..."
+    local project_name="${COMPOSE_PROJECT_NAME:-online-time-prod}"
     
     echo -e "${GREEN}容器状态:${NC}"
-    if docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(online-time|nginx|redis|prometheus|grafana)" || true; then
-        echo "相关容器已列出"
+    local containers=$(docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" --filter "name=$project_name" 2>/dev/null || true)
+    if [[ -n "$containers" ]]; then
+        echo "$containers"
     else
-        echo "没有发现相关容器在运行"
+        echo "没有发现项目相关容器"
+    fi
+    
+    # 额外检查遗留的相关容器
+    local legacy_containers=$(docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(online-time|nginx|redis|prometheus|grafana)" 2>/dev/null || true)
+    if [[ -n "$legacy_containers" ]]; then
+        echo -e "${YELLOW}发现其他相关容器:${NC}"
+        echo "$legacy_containers"
     fi
     
     echo
     echo -e "${GREEN}网络状态:${NC}"
-    docker network ls --format "table {{.Name}}\t{{.Driver}}\t{{.Scope}}" | grep -E "(deploy|online-time)" || echo "没有发现相关网络"
+    docker network ls --format "table {{.Name}}\t{{.Driver}}\t{{.Scope}}" | grep -E "($project_name|deploy|online-time)" 2>/dev/null || echo "没有发现相关网络"
     
     echo
     success "========== 服务停止完成 =========="
     echo -e "所有在线时间工具相关服务已停止"
+    echo -e "项目名: ${BLUE}$project_name${NC}"
     echo
     echo -e "${YELLOW}常用命令:${NC}"
     echo "  启动服务: ./start.sh [模式]"
@@ -278,6 +313,9 @@ main() {
     
     # 检查Docker
     check_docker
+    
+    # 加载环境配置
+    load_environment
     
     # 确认操作
     if [[ "$force" == "true" ]] || [[ "$remove_volumes" == "true" ]] || [[ "$remove_images" == "true" ]]; then

@@ -171,7 +171,7 @@ start_services() {
     
     # 启动服务
     log "启动容器..."
-    if docker-compose -f "$compose_file" up -d $compose_args; then
+    if docker-compose -p "${COMPOSE_PROJECT_NAME:-online-time-prod}" -f "$compose_file" up -d $compose_args; then
         success "服务启动成功"
     else
         error "服务启动失败"
