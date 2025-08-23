@@ -3,10 +3,12 @@
 ## 🚀 快速部署
 
 ### 前置要求
+
 - Node.js >= 18.0.0
 - npm >= 9.0.0
 
 ### 本地构建
+
 ```bash
 # 安装依赖
 npm install
@@ -23,6 +25,7 @@ npm run preview
 ### 1. 静态网站托管（推荐）
 
 #### Vercel 部署
+
 ```bash
 # 安装 Vercel CLI
 npm install -g vercel
@@ -32,6 +35,7 @@ vercel --prod
 ```
 
 **配置文件** (`vercel.json`):
+
 ```json
 {
   "version": 2,
@@ -54,6 +58,7 @@ vercel --prod
 ```
 
 #### Netlify 部署
+
 ```bash
 # 构建设置
 Build command: npm run build
@@ -61,6 +66,7 @@ Publish directory: dist
 ```
 
 **配置文件** (`netlify.toml`):
+
 ```toml
 [build]
   publish = "dist"
@@ -73,6 +79,7 @@ Publish directory: dist
 ```
 
 #### GitHub Pages 部署
+
 ```bash
 # 安装 gh-pages
 npm install --save-dev gh-pages
@@ -90,6 +97,7 @@ npm run deploy
 ### 2. Docker 部署
 
 **Dockerfile**:
+
 ```dockerfile
 FROM node:18-alpine AS builder
 
@@ -109,6 +117,7 @@ CMD ["nginx", "-g", "daemon off;"]
 ```
 
 **nginx.conf**:
+
 ```nginx
 events {
     worker_connections 1024;
@@ -150,6 +159,7 @@ http {
 ```
 
 **构建和运行**:
+
 ```bash
 # 构建镜像
 docker build -t online-time .
@@ -161,6 +171,7 @@ docker run -p 80:80 online-time
 ### 3. CDN 加速部署
 
 #### 阿里云 OSS + CDN
+
 ```bash
 # 安装阿里云 CLI
 npm install -g @alicloud/cli
@@ -171,6 +182,7 @@ npm install -g @alicloud/cli
 ```
 
 #### 腾讯云 COS + CDN
+
 ```bash
 # 安装腾讯云 CLI
 npm install -g qcloud-cli
@@ -182,6 +194,7 @@ npm install -g qcloud-cli
 ## ⚙️ 环境配置
 
 ### 环境变量 (可选)
+
 ```bash
 # .env.production
 VITE_APP_TITLE="在线闹钟"
@@ -192,6 +205,7 @@ VITE_ANALYTICS_ID=""
 ### 构建优化配置
 
 **package.json** 构建脚本:
+
 ```json
 {
   "scripts": {
@@ -207,11 +221,13 @@ VITE_ANALYTICS_ID=""
 ## 🔧 性能优化
 
 ### 1. 资源优化
+
 - **图片压缩**: 使用 WebP 格式
 - **字体优化**: 子集化中文字体
 - **代码分割**: 按页面分包加载
 
 ### 2. 缓存策略
+
 ```nginx
 # HTML 文件 - 不缓存
 location ~* \.html$ {
@@ -233,6 +249,7 @@ location ~* \.(mp3|wav)$ {
 ```
 
 ### 3. GZIP 压缩
+
 ```nginx
 gzip on;
 gzip_vary on;
@@ -252,6 +269,7 @@ gzip_types
 ## 📊 监控配置
 
 ### 1. 性能监控
+
 ```javascript
 // Google Analytics 4
 window.gtag('config', 'GA_MEASUREMENT_ID', {
@@ -270,6 +288,7 @@ getTTFB(console.log);
 ```
 
 ### 2. 错误监控
+
 ```javascript
 // Sentry 错误监控
 import * as Sentry from "@sentry/react";
@@ -284,6 +303,7 @@ Sentry.init({
 ## 🔒 安全配置
 
 ### HTTPS 配置
+
 ```nginx
 # SSL 证书配置
 server {
@@ -304,6 +324,7 @@ server {
 ```
 
 ### 安全头部
+
 ```nginx
 # 安全头部配置
 add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
@@ -335,6 +356,7 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
    - 验证响应式断点配置
 
 ### 调试工具
+
 ```bash
 # 本地调试
 npm run dev
@@ -373,6 +395,7 @@ npm run preview
 ## 📞 技术支持
 
 如遇到部署问题，请参考：
+
 - **[项目配置文档](./CLAUDE.md)** - 完整开发环境配置
 - **[快速启动指南](./README_QUICK_START.md)** - 本地运行说明
 - [Vite 构建指南](https://vitejs.dev/guide/build.html) - 官方文档
