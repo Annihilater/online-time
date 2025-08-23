@@ -1,0 +1,52 @@
+# AlertManager 告警管理配置
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@online-time.local'
+  
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+  routes:
+  - match:
+      severity: critical
+    receiver: 'critical-alerts'
+    repeat_interval: 5m
+  - match:
+      severity: warning
+    receiver: 'warning-alerts'
+    repeat_interval: 30m
+
+receivers:
+- name: 'web.hook'
+  webhook_configs:
+  - url: 'http://127.0.0.1:5001/webhook'
+    send_resolved: true
+
+- name: 'critical-alerts'
+  webhook_configs:
+  - url: 'http://127.0.0.1:5001/webhook/critical'
+    send_resolved: true
+  # 可以添加邮件通知
+  # email_configs:
+  # - to: 'admin@online-time.local'
+  #   subject: '[CRITICAL] Online Time Alert'
+  #   body: |
+  #     {{ range .Alerts }}
+  #     Alert: {{ .Annotations.summary }}
+  #     Description: {{ .Annotations.description }}
+  #     {{ end }}
+
+- name: 'warning-alerts'
+  webhook_configs:
+  - url: 'http://127.0.0.1:5001/webhook/warning'
+    send_resolved: true
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']

@@ -1,0 +1,28 @@
+# 开发环境 Docker Compose 配置
+# 用于本地开发和测试
+
+version: '3.8'
+
+services:
+  online-time-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - NODE_ENV=development
+    ports:
+      - "3000:80"  # 开发环境使用3000端口
+    environment:
+      - NODE_ENV=development
+    volumes:
+      # 开发模式下挂载日志目录用于调试
+      - ./logs:/var/log/nginx
+    restart: "no"  # 开发环境不自动重启
+    networks:
+      - online-time-dev-network
+
+networks:
+  online-time-dev-network:
+    driver: bridge
+    name: online-time-dev-network

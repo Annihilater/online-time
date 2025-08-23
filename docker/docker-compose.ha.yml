@@ -1,0 +1,187 @@
+version: '3.8'
+
+# 高可用性部署配置 - 多实例 + 负载均衡
+services:
+  # 在线闹钟应用 - 多实例
+  online-time-app-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: online-time:latest
+    container_name: online-time-app-1
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NGINX_WORKER_PROCESSES=auto
+      - INSTANCE_ID=app-1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "service=online-time-app"
+      - "instance=1"
+
+  online-time-app-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: online-time:latest
+    container_name: online-time-app-2
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NGINX_WORKER_PROCESSES=auto
+      - INSTANCE_ID=app-2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "service=online-time-app"
+      - "instance=2"
+
+  # HAProxy负载均衡器
+  haproxy:
+    image: haproxy:2.8-alpine
+    container_name: online-time-haproxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "8404:8404"  # HAProxy统计页面
+    volumes:
+      - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      online-time-app-1:
+        condition: service_healthy
+      online-time-app-2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8404/stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+    labels:
+      - "service=load-balancer"
+
+  # Redis缓存(可选,用于会话共享)
+  redis:
+    image: redis:7-alpine
+    container_name: online-time-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.125'
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    labels:
+      - "service=redis-cache"
+
+  # Keepalived(可选,用于VIP)
+  keepalived:
+    image: osixia/keepalived:2.0.20
+    container_name: online-time-keepalived
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_BROADCAST
+      - NET_RAW
+    volumes:
+      - ./config/keepalived.conf:/container/service/keepalived/assets/keepalived.conf:ro
+    environment:
+      - KEEPALIVED_INTERFACE=eth0
+      - KEEPALIVED_VIRTUAL_IPS=192.168.1.100
+      - KEEPALIVED_UNICAST_PEERS=#PYTHON2BASH:['192.168.1.10', '192.168.1.11']
+      - KEEPALIVED_PRIORITY=100
+    profiles:
+      - vip
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "3m"
+        max-file: "2"
+    labels:
+      - "service=vip-manager"
+
+networks:
+  app-network:
+    name: online-time-ha-network
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  redis-data:
+    name: online-time-redis-data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/redis
