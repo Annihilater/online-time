@@ -1,7 +1,7 @@
 # Online Time Project Makefile
 # 简化常用开发操作
 
-.PHONY: help install dev build test lint clean deploy status
+.PHONY: help install dev build test lint clean deploy status docker-build docker-run docker-stop docker-logs docker-clean docker-deploy compose-up compose-down docker-health
 
 # 默认目标 - 显示帮助信息
 help:
@@ -19,6 +19,17 @@ help:
 	@echo "  make status      检查项目状态"
 	@echo "  make deps        检查依赖状态"
 	@echo "  make coverage    生成测试覆盖率报告"
+	@echo ""
+	@echo "Docker 命令:"
+	@echo "  make docker-build    构建Docker镜像"
+	@echo "  make docker-run      运行Docker容器"
+	@echo "  make docker-stop     停止Docker容器"
+	@echo "  make docker-logs     查看容器日志"
+	@echo "  make docker-clean    清理Docker资源"
+	@echo "  make docker-deploy   一键Docker部署"
+	@echo "  make compose-up      启动Docker Compose"
+	@echo "  make compose-down    停止Docker Compose"
+	@echo "  make deploy          使用部署脚本部署"
 	@echo ""
 
 # 安装依赖
@@ -206,3 +217,76 @@ fix:
 	@echo "4. 验证修复结果..."
 	@make test-ci
 	@echo "✅ 快速修复完成!"
+
+# Docker 相关命令
+# 构建Docker镜像
+docker-build:
+	@echo "🐳 构建Docker镜像..."
+	docker build -t online-time:latest .
+	@echo "✅ Docker镜像构建完成!"
+
+# 运行Docker容器
+docker-run:
+	@echo "🚀 启动Docker容器..."
+	docker run -d --name online-time-app -p 80:80 online-time:latest
+	@echo "✅ Docker容器启动完成!"
+	@echo "🌐 访问地址: http://localhost"
+
+# 停止Docker容器
+docker-stop:
+	@echo "🛑 停止Docker容器..."
+	docker stop online-time-app || true
+	docker rm online-time-app || true
+	@echo "✅ Docker容器已停止!"
+
+# 查看容器日志
+docker-logs:
+	@echo "📋 查看容器日志..."
+	docker logs -f online-time-app
+
+# 清理Docker资源
+docker-clean:
+	@echo "🧹 清理Docker资源..."
+	docker stop online-time-app || true
+	docker rm online-time-app || true
+	docker rmi online-time:latest || true
+	docker system prune -f
+	@echo "✅ Docker清理完成!"
+
+# 一键Docker部署
+docker-deploy: docker-stop docker-build docker-run
+	@echo "🎉 Docker部署完成!"
+	@echo "🌐 应用访问地址: http://localhost"
+	@echo "🔍 健康检查: http://localhost/health"
+
+# Docker Compose 启动
+compose-up:
+	@echo "🐳 启动Docker Compose服务..."
+	docker-compose up -d
+	@echo "✅ Docker Compose服务启动完成!"
+
+# Docker Compose 停止
+compose-down:
+	@echo "🛑 停止Docker Compose服务..."
+	docker-compose down
+	@echo "✅ Docker Compose服务已停止!"
+
+# 使用部署脚本
+deploy:
+	@echo "🚀 使用部署脚本进行部署..."
+	./deploy.sh
+
+# 生产模式的Docker Compose（包含监控）
+compose-prod:
+	@echo "🐳 启动生产环境 Docker Compose（包含监控）..."
+	docker-compose --profile monitoring up -d
+
+# Docker健康检查
+docker-health:
+	@echo "🏥 检查Docker容器健康状态..."
+	@if docker ps | grep -q online-time-app; then \
+		echo "✅ 容器正在运行"; \
+		curl -f http://localhost/health && echo "✅ 应用健康检查通过" || echo "❌ 应用健康检查失败"; \
+	else \
+		echo "❌ 容器未运行"; \
+	fi

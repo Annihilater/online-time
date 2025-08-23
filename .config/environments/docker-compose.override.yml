@@ -1,0 +1,103 @@
+# Docker Compose环境覆盖配置
+# 用法: docker-compose -f docker-compose.yml -f environments/docker-compose.override.yml up
+
+version: '3.8'
+
+# 开发环境覆盖
+services:
+  online-time-app:
+    environment:
+      - NODE_ENV=development
+      - DEBUG=true
+    volumes:
+      # 开发时挂载源代码(可选)
+      - ./src:/app/src:ro
+      - ./public:/app/public:ro
+    ports:
+      # 开放额外端口用于调试
+      - "3000:80"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    labels:
+      - "environment=development"
+      - "debug=enabled"
+
+  # 开发环境的监控服务(较低资源配置)
+  prometheus:
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'  # 开发环境保留较短时间
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.125'
+
+  grafana:
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=dev123
+      - GF_USERS_ALLOW_SIGN_UP=true  # 开发环境允许注册
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.125'
+
+  redis:
+    command: redis-server --appendonly yes --maxmemory 64mb --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.125'
+        reservations:
+          memory: 64M
+          cpus: '0.0625'
+
+# 开发环境网络配置
+networks:
+  online-time-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
+
+# 开发环境数据卷(使用本地挂载)
+volumes:
+  prometheus-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/dev/prometheus
+  grafana-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/dev/grafana
+  redis-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/dev/redis
