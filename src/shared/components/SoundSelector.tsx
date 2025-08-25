@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAlarmStore } from '@/shared/stores/alarmStore';
+import { audioEngine } from '@/shared/utils/audioUtils';
 import { AudioVisualizer, MiniAudioVisualizer } from './AudioVisualizer';
 import { LoadingSpinner } from './LoadingSpinner';
 import { AnimatedButton } from './AnimatedButton';
@@ -21,6 +22,7 @@ export const SoundSelector: React.FC = () => {
 
   const handleTestSound = async () => {
     if (isPlaying) {
+      audioEngine.stop();
       setIsPlaying(false);
       return;
     }
@@ -28,32 +30,32 @@ export const SoundSelector: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Simulate loading time
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
       console.log('Testing sound:', selectedSound);
       setIsPlaying(true);
       
-      // Play for 3 seconds then stop
+      // Actually play the sound using audioEngine
+      await audioEngine.testSound(selectedSound, 3000);
+      
+      // The testSound method automatically stops after duration
       setTimeout(() => {
         setIsPlaying(false);
       }, 3000);
       
-      // Success feedback
-      // Animation removed for stability
     } catch (error) {
       console.error('Failed to play sound:', error);
-      // Error feedback
-      // Error animation removed for stability
+      setIsPlaying(false);
     } finally {
       setIsLoading(false);
     }
   };
   
   const handleSoundChange = (sound: string) => {
+    // Stop any currently playing sound when changing selection
+    if (isPlaying) {
+      audioEngine.stop();
+      setIsPlaying(false);
+    }
     setSound(sound);
-    // Add subtle animation when changing sound
-    // Animation removed for stability
   };
 
   return (

@@ -52,10 +52,10 @@ const SOUND_DEFINITIONS: Record<string, SoundData> = {
   },
   rain: {
     name: '雨声',
-    frequency: 300,
-    type: 'sine',
-    duration: 4.0,
-    envelope: { attack: 0.5, decay: 0.3, sustain: 0.8, release: 2.0 }
+    frequency: 800,  // 更高的频率用于粉红噪声基础
+    type: 'square',  // 方波产生更丰富的谐波
+    duration: 6.0,  // 更长的持续时间
+    envelope: { attack: 0.8, decay: 0.2, sustain: 0.3, release: 1.5 }  // 更自然的包络
   },
   bell: {
     name: '钟声',
@@ -232,8 +232,8 @@ export class EnhancedAudioEngine {
         break;
         
       case 'rain':
-        // 添加白噪声效果
-        this.addWhiteNoise(sessionId, context, startTime, soundDef.duration, 0.1);
+        // 创建更真实的雨声效果
+        this.createRainEffect(sessionId, context, startTime, soundDef.duration);
         break;
     }
   }
@@ -257,29 +257,79 @@ export class EnhancedAudioEngine {
     }
   }
 
-  private addWhiteNoise(sessionId: string, context: AudioContext, startTime: number, duration: number, volume: number): void {
-    // 创建白噪声缓冲区
+  private createRainEffect(sessionId: string, context: AudioContext, startTime: number, duration: number): void {
+    // 1. 主要的粉红噪声层（雨声的主体）
     const bufferSize = context.sampleRate * duration;
-    const buffer = context.createBuffer(1, bufferSize, context.sampleRate);
-    const output = buffer.getChannelData(0);
+    const buffer = context.createBuffer(2, bufferSize, context.sampleRate);
     
-    // 生成白噪声
-    for (let i = 0; i < bufferSize; i++) {
-      output[i] = Math.random() * 2 - 1;
+    // 生成粉红噪声（比白噪声更像雨声）
+    for (let channel = 0; channel < 2; channel++) {
+      const output = buffer.getChannelData(channel);
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        const pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+        output[i] = pink * 0.11; // 调整音量
+        b6 = white * 0.115926;
+      }
     }
     
     const noise = this.createTrackedNode(sessionId, (ctx) => ctx.createBufferSource());
     const noiseGain = this.createTrackedNode(sessionId, (ctx) => ctx.createGain());
+    const filter = this.createTrackedNode(sessionId, (ctx) => ctx.createBiquadFilter());
     
-    if (!noise || !noiseGain || !this.masterGain) return;
+    if (!noise || !noiseGain || !filter || !this.masterGain) return;
+    
+    // 配置低通滤波器，模拟雨声的闷响
+    filter.type = 'lowpass';
+    filter.frequency.value = 1500;
+    filter.Q.value = 0.5;
     
     noise.buffer = buffer;
-    noiseGain.gain.value = volume;
     
-    noise.connect(noiseGain);
+    // 配置增益包络，创建自然的雨声起伏
+    noiseGain.gain.setValueAtTime(0, startTime);
+    noiseGain.gain.linearRampToValueAtTime(0.6, startTime + 0.8);
+    noiseGain.gain.setValueAtTime(0.6, startTime + duration - 1.5);
+    noiseGain.gain.linearRampToValueAtTime(0, startTime + duration);
+    
+    // 连接音频节点
+    noise.connect(filter);
+    filter.connect(noiseGain);
     noiseGain.connect(this.masterGain);
     
     noise.start(startTime);
+    
+    // 2. 添加随机的雨滴声（高频点击）
+    const dropCount = Math.floor(duration * 3); // 每秒约3个雨滴
+    for (let i = 0; i < dropCount; i++) {
+      const dropTime = startTime + Math.random() * duration;
+      const dropOsc = this.createTrackedNode(sessionId, (ctx) => ctx.createOscillator());
+      const dropGain = this.createTrackedNode(sessionId, (ctx) => ctx.createGain());
+      
+      if (!dropOsc || !dropGain) continue;
+      
+      dropOsc.frequency.value = 2000 + Math.random() * 2000; // 2000-4000 Hz
+      dropOsc.type = 'sine';
+      
+      // 快速的雨滴撞击声
+      dropGain.gain.setValueAtTime(0, dropTime);
+      dropGain.gain.linearRampToValueAtTime(0.05 + Math.random() * 0.05, dropTime + 0.005);
+      dropGain.gain.exponentialRampToValueAtTime(0.001, dropTime + 0.05);
+      
+      dropOsc.connect(dropGain);
+      dropGain.connect(this.masterGain);
+      
+      dropOsc.start(dropTime);
+      dropOsc.stop(dropTime + 0.05);
+    }
   }
 
   // 改进的播放方法
