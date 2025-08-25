@@ -52,6 +52,7 @@ show_help() {
 
 部署模式:
   basic    基础模式 (应用 + nginx)
+  1panel   1Panel单容器模式 (端口: 9653，适用于反向代理)
   full     完整模式 (应用 + nginx + redis)
   ha       高可用模式 (多实例 + 负载均衡 + 监控)
 
@@ -66,9 +67,10 @@ show_help() {
 
 示例:
   $0                   # 基础模式部署
+  $0 1panel           # 1Panel单容器部署
   $0 full             # 完整模式部署
   $0 ha --force       # 强制重新部署高可用模式
-  $0 basic --dry-run  # 检查基础模式部署
+  $0 1panel --dry-run # 检查1Panel模式部署
 
 EOF
 }
@@ -84,7 +86,7 @@ parse_args() {
     
     while [[ $# -gt 0 ]]; do
         case $1 in
-            basic|full|ha)
+            basic|1panel|full|ha)
                 MODE="$1"
                 shift
                 ;;
@@ -134,8 +136,11 @@ parse_args() {
     
     # 根据模式设置compose文件
     case "$MODE" in
-        basic)
+        basic|1panel)
             COMPOSE_FILE="docker-compose.prod.yml"
+            if [[ "$MODE" == "1panel" ]]; then
+                print_info "使用1Panel单容器模式 (端口: 9653)"
+            fi
             ;;
         full)
             COMPOSE_FILE="docker-compose.prod.yml"

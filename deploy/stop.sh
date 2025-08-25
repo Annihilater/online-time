@@ -138,9 +138,9 @@ graceful_stop() {
     
     # 检查是否有运行的服务
     if docker-compose -p "$project_name" -f "docker-compose.prod.yml" ps -q 2>/dev/null | grep -q .; then
-        log "停止服务..."
-        if docker-compose -p "$project_name" -f "docker-compose.prod.yml" stop $compose_args; then
-            success "服务已停止"
+        log "停止并删除服务..."
+        if docker-compose -p "$project_name" -f "docker-compose.prod.yml" down $compose_args; then
+            success "服务已停止并删除"
         else
             error "服务停止失败"
         fi

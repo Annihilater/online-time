@@ -42,6 +42,7 @@ show_help() {
     echo
     echo "部署模式:"
     echo "  basic      基础模式 (默认) - 应用 + Nginx"
+    echo "  1panel     1Panel单容器模式 - 端口9653，适用于反向代理"
     echo
     echo "选项:"
     echo "  -h, --help     显示此帮助信息"
@@ -51,6 +52,7 @@ show_help() {
     echo
     echo "示例:"
     echo "  $0              # 基础模式启动"
+    echo "  $0 1panel       # 1Panel单容器模式启动"
     echo "  $0 --logs       # 基础模式启动并显示日志"
 }
 
@@ -155,12 +157,12 @@ start_services() {
         compose_args="--verbose"
     fi
     
-    log "启动服务 - 模式: basic"
+    log "启动服务 - 模式: $mode"
     log "使用配置文件: $compose_file"
     
-    # 拉取最新镜像
-    log "拉取最新镜像..."
-    docker-compose -f "$compose_file" pull
+    # 构建镜像（如果需要）
+    log "构建镜像（如果需要）..."
+    docker-compose -f "$compose_file" build
     
     # 启动服务
     log "启动容器..."
@@ -264,7 +266,7 @@ main() {
                 # 默认就是后台运行
                 shift
                 ;;
-            basic)
+            basic|1panel)
                 mode="$1"
                 shift
                 ;;
