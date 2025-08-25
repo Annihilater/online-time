@@ -223,18 +223,65 @@ commit-push: commit push
 # 🐳 Docker 操作 (Docker Operations)
 # ==========================================
 
-# 构建 Docker 镜像
+# 构建 Docker 镜像 (本地)
 docker-build:
     @echo -e "{{BLUE}}🐳 构建 Docker 镜像...{{NC}}"
     docker build -t {{DOCKER_IMAGE}}:latest .
     @echo -e "{{GREEN}}✅ Docker 镜像构建完成！{{NC}}"
 
+# 跨平台构建并推送到Docker Hub
+docker-build-multi:
+    @echo -e "{{BLUE}}🚀 跨平台构建并推送...{{NC}}"
+    ./scripts/quick-build.sh
+    @echo -e "{{GREEN}}✅ 多架构镜像推送完成！{{NC}}"
+
+# 完整的跨平台构建 (含详细选项)
+docker-build-full *args:
+    @echo -e "{{BLUE}}🔧 完整跨平台构建...{{NC}}"
+    ./scripts/docker-build-push.sh {{args}}
+    @echo -e "{{GREEN}}✅ 完整构建完成！{{NC}}"
+
+# 1Panel单容器部署 - 端口9653
+alias deploy := deploy-1panel
+deploy-1panel:
+    @echo -e "{{BLUE}}🚀 1Panel单容器部署 (端口: 9653)...{{NC}}"
+    -docker stop {{DOCKER_CONTAINER}} 2>/dev/null || true
+    -docker rm {{DOCKER_CONTAINER}} 2>/dev/null || true
+    docker build -t {{DOCKER_IMAGE}}:latest .
+    docker run -d --name {{DOCKER_CONTAINER}} -p 9653:9653 --restart unless-stopped {{DOCKER_IMAGE}}:latest
+    @echo -e "{{GREEN}}✅ 容器已启动！{{NC}}"
+    @echo -e "{{CYAN}}📍 内部端口: 9653 (用于1Panel反向代理){{NC}}"
+    @echo -e "{{CYAN}}💡 在1Panel中配置反向代理指向: localhost:9653{{NC}}"
+
+# 使用docker-compose部署
+deploy-compose:
+    @echo -e "{{BLUE}}🐳 使用docker-compose部署...{{NC}}"
+    docker-compose -f docker-compose.simple.yml down || true
+    docker-compose -f docker-compose.simple.yml up --build -d
+    @echo -e "{{GREEN}}✅ 部署完成！端口: 9653{{NC}}"
+
+# 使用deploy目录的生产脚本部署
+deploy-prod mode="1panel":
+    @echo -e "{{BLUE}}🚀 生产环境部署 (模式: {{mode}})...{{NC}}"
+    cd deploy && ./deploy.sh {{mode}}
+    @echo -e "{{GREEN}}✅ 生产部署完成！{{NC}}"
+
+# 启动deploy目录的服务
+deploy-start mode="1panel":
+    @echo -e "{{GREEN}}▶️  启动服务 (模式: {{mode}})...{{NC}}"
+    cd deploy && ./start.sh {{mode}}
+
+# 停止deploy目录的服务
+deploy-stop:
+    @echo -e "{{RED}}⏹️  停止服务...{{NC}}"
+    cd deploy && ./stop.sh
+
 # 运行 Docker 容器
-docker-run port="80":
+docker-run port="9653":
     @echo -e "{{GREEN}}🏃 运行 Docker 容器 (端口: {{port}})...{{NC}}"
     -docker stop {{DOCKER_CONTAINER}} 2>/dev/null
     -docker rm {{DOCKER_CONTAINER}} 2>/dev/null
-    docker run -d --name {{DOCKER_CONTAINER}} -p {{port}}:80 {{DOCKER_IMAGE}}:latest
+    docker run -d --name {{DOCKER_CONTAINER}} -p {{port}}:9653 {{DOCKER_IMAGE}}:latest
     @echo -e "{{GREEN}}✅ 容器已启动！访问: http://localhost:{{port}}{{NC}}"
 
 # 停止 Docker 容器
